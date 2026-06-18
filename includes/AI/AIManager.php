@@ -148,13 +148,30 @@ final class AIManager implements Bootable {
 		}
 
 		if ( (bool) $this->settings->get( 'ai.generate_title', false ) && '' !== $result->title ) {
+			$title = (bool) $this->settings->get( 'ai.hyphenate_title', false )
+				? $this->hyphenate( $result->title )
+				: $result->title;
 			wp_update_post(
 				[
-					'ID'          => $attachment_id,
-					'post_title'  => $result->title,
+					'ID'           => $attachment_id,
+					'post_title'   => $title,
 					'post_excerpt' => $result->alt, // leyenda.
 				]
 			);
+		}
+
+		// Descripción del adjunto (post_content). Usa la descripción detallada,
+		// con respaldo al alt si el modelo no la devolvió.
+		if ( (bool) $this->settings->get( 'ai.generate_description', false ) ) {
+			$description = '' !== $result->description ? $result->description : $result->alt;
+			if ( '' !== $description ) {
+				wp_update_post(
+					[
+						'ID'           => $attachment_id,
+						'post_content' => $description,
+					]
+				);
+			}
 		}
 
 		// 4) Renombrado semántico opcional.
@@ -220,6 +237,22 @@ final class AIManager implements Bootable {
 			'alt'     => $fallback,
 			'message' => __( 'Contenido sensible: optimización técnica aplicada, IA generativa omitida.', 'fasterfy' ),
 		];
+	}
+
+	/**
+	 * Convierte un título en formato con guiones (SEO), conservando acentos
+	 * y mayúsculas. Ej.: "Retrato de hombre joven" -> "Retrato-de-hombre-joven".
+	 *
+	 * @param string $text Título original.
+	 * @return string
+	 */
+	private function hyphenate( string $text ): string {
+		$text = wp_strip_all_tags( $text );
+		// Elimina signos de puntuación habituales.
+		$text = preg_replace( '/[\.,;:!\?¿¡"\'()]+/u', '', $text ) ?? $text;
+		// Sustituye secuencias de espacios por un único guión.
+		$text = preg_replace( '/\s+/u', '-', trim( $text ) ) ?? $text;
+		return trim( $text, '-' );
 	}
 
 	/**

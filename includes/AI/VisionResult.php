@@ -25,6 +25,9 @@ final class VisionResult {
 	/** Título / leyenda sugeridos. */
 	public string $title = '';
 
+	/** Descripción detallada (1-2 frases) para el campo Descripción del adjunto. */
+	public string $description = '';
+
 	/** Términos clave para el renombrado semántico. */
 	public string $keywords = '';
 

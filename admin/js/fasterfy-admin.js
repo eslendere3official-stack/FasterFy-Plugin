@@ -418,6 +418,8 @@
 					'<div class="ff-section-title">Generación</div>' +
 					toggleField( 'ai.generate_alt', 'Generar Alt Text', ai.generate_alt, 'Inyecta _wp_attachment_image_alt de forma nativa.' ) +
 					toggleField( 'ai.generate_title', 'Generar título / leyenda', ai.generate_title ) +
+					toggleField( 'ai.hyphenate_title', 'Título con guiones (SEO)', ai.hyphenate_title, 'Separa las palabras del título con guiones. Ej.: Retrato-de-hombre-joven.' ) +
+					toggleField( 'ai.generate_description', 'Generar descripción', ai.generate_description, 'Rellena el campo Descripción del adjunto.' ) +
 					toggleField( 'ai.semantic_rename', 'Renombrado semántico SEO', ai.semantic_rename, 'Renombra el archivo con keywords y actualiza la BD.' ) +
 
 					'<div class="ff-section-title">Moderación de contenido</div>' +

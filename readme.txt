@@ -75,6 +75,11 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 
 == Changelog ==
 
+= 1.0.2 =
+* IA: nueva generación del campo "Descripción" del adjunto (post_content).
+* IA: nueva opción "Título con guiones (SEO)" que separa las palabras del título con guiones.
+* Ambas opciones son configurables desde la pestaña IA & SEO.
+
 = 1.0.1 =
 * UI: corregidos los interruptores (toggles) que se mostraban rotos por un conflicto de especificidad CSS.
 * UI: el panel ahora es un contenedor flotante con márgenes (ya no queda pegado al borde) y esquinas redondeadas.

@@ -164,10 +164,11 @@ final class OpenAIProvider implements AIProvider {
 
 		return VisionResult::ok(
 			[
-				'alt'      => $this->truncate( $parsed['alt'], $max_length ),
-				'title'    => $parsed['title'],
-				'keywords' => $parsed['keywords'],
-				'raw'      => [ 'model' => $model, 'usage' => $raw['usage'] ?? null ],
+				'alt'         => $this->truncate( $parsed['alt'], $max_length ),
+				'title'       => $parsed['title'],
+				'description' => $parsed['description'],
+				'keywords'    => $parsed['keywords'],
+				'raw'         => [ 'model' => $model, 'usage' => $raw['usage'] ?? null ],
 			]
 		);
 	}
@@ -191,6 +192,7 @@ final class OpenAIProvider implements AIProvider {
 			. 'Responde EXCLUSIVAMENTE en formato JSON con las claves: '
 			. '"alt" (texto alternativo conciso en %1$s, máx. %2$d caracteres), '
 			. '"title" (título corto en %1$s), '
+			. '"description" (descripción de 1 o 2 frases en %1$s, más detallada que el alt), '
 			. '"keywords" (3 a 6 términos clave separados por espacios, en %1$s, sin signos de puntuación).',
 			$language,
 			$max_length
@@ -272,7 +274,7 @@ final class OpenAIProvider implements AIProvider {
 	 * @return array{alt: string, title: string, keywords: string}
 	 */
 	private function parse_content( string $content ): array {
-		$out = [ 'alt' => '', 'title' => '', 'keywords' => '' ];
+		$out = [ 'alt' => '', 'title' => '', 'description' => '', 'keywords' => '' ];
 
 		$json = json_decode( $content, true );
 		if ( ! is_array( $json ) ) {
@@ -283,9 +285,10 @@ final class OpenAIProvider implements AIProvider {
 		}
 
 		if ( is_array( $json ) ) {
-			$out['alt']      = sanitize_text_field( (string) ( $json['alt'] ?? '' ) );
-			$out['title']    = sanitize_text_field( (string) ( $json['title'] ?? '' ) );
-			$out['keywords'] = sanitize_text_field( (string) ( $json['keywords'] ?? '' ) );
+			$out['alt']         = sanitize_text_field( (string) ( $json['alt'] ?? '' ) );
+			$out['title']       = sanitize_text_field( (string) ( $json['title'] ?? '' ) );
+			$out['description'] = sanitize_text_field( (string) ( $json['description'] ?? '' ) );
+			$out['keywords']    = sanitize_text_field( (string) ( $json['keywords'] ?? '' ) );
 		} else {
 			// Respaldo: usa el texto como alt.
 			$out['alt'] = sanitize_text_field( $content );

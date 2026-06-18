@@ -77,6 +77,10 @@ final class Settings {
 				'generate_alt'      => true,
 				// Generar título / leyenda.
 				'generate_title'    => false,
+				// Generar descripción del adjunto (post_content).
+				'generate_description' => true,
+				// Título con palabras separadas por guiones (formato SEO).
+				'hyphenate_title'   => true,
 				// Renombrado semántico del archivo a partir de keywords de IA.
 				'semantic_rename'   => false,
 				// Idioma de las descripciones generadas.
@@ -289,6 +293,8 @@ final class Settings {
 		$a['temperature']    = max( 0.0, min( 2.0, (float) $a['temperature'] ) );
 		$a['generate_alt']   = (bool) $a['generate_alt'];
 		$a['generate_title'] = (bool) $a['generate_title'];
+		$a['generate_description'] = (bool) $a['generate_description'];
+		$a['hyphenate_title'] = (bool) $a['hyphenate_title'];
 		$a['semantic_rename'] = (bool) $a['semantic_rename'];
 		$a['language']       = sanitize_text_field( (string) $a['language'] );
 		$a['alt_max_length'] = self::clamp_int( $a['alt_max_length'], 20, 300, 125 );
