@@ -75,6 +75,7 @@ final class RestController implements Bootable {
 			[ 'rollback', WP_REST_Server::CREATABLE, 'rollback_item' ],
 			[ 'queue/status', WP_REST_Server::READABLE, 'queue_status' ],
 			[ 'queue/start', WP_REST_Server::CREATABLE, 'queue_start' ],
+			[ 'queue/run', WP_REST_Server::CREATABLE, 'queue_run' ],
 			[ 'queue/pause', WP_REST_Server::CREATABLE, 'queue_pause' ],
 			[ 'queue/resume', WP_REST_Server::CREATABLE, 'queue_resume' ],
 			[ 'queue/cancel', WP_REST_Server::CREATABLE, 'queue_cancel' ],
@@ -259,6 +260,16 @@ final class RestController implements Bootable {
 		$mode  = (string) ( $request->get_param( 'mode' ) ?: 'both' );
 		$state = $this->core->queue()->start( [ 'mode' => $mode ] );
 		return $this->ok( [ 'queue' => $state ] );
+	}
+
+	/**
+	 * Procesa un lote de forma síncrona (conducido por el navegador).
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function queue_run(): WP_REST_Response {
+		$state = $this->core->queue()->run_batch();
+		return $this->ok( [ 'queue' => $state, 'library' => $this->core->scanner()->summary() ] );
 	}
 
 	public function queue_pause(): WP_REST_Response {

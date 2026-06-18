@@ -51,6 +51,9 @@
 
 .fasterfy-app * { box-sizing: border-box; }
 
+/* Asegura que los títulos sean legibles (evita el color oscuro de wp-admin). */
+.fasterfy-app h1, .fasterfy-app h2, .fasterfy-app h3, .fasterfy-app h4 { color: var(--ff-text) !important; margin-top: 0; }
+
 /* ----- Pantalla de carga ----- */
 .ff-boot { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 18px; }
 .ff-boot__logo { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; }
@@ -244,4 +247,19 @@
 	.ff-nav { flex-direction: row; flex-wrap: wrap; }
 	.ff-settings-grid { grid-template-columns: 1fr; }
 	.ff-metrics { grid-template-columns: 1fr; }
+}
+
+
+/* ----- Vista en cuadrícula de la biblioteca ----- */
+.ff-mediagrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.ff-mcard { display: flex; flex-direction: column; background: var(--ff-surface); border: 1px solid var(--ff-border); border-radius: var(--ff-radius-sm); overflow: hidden; transition: transform .15s ease, box-shadow .15s ease; }
+.ff-mcard:hover { transform: translateY(-2px); box-shadow: var(--ff-shadow); }
+.ff-mcard__thumb { aspect-ratio: 1 / 1; background: var(--ff-surface-2); overflow: hidden; }
+.ff-mcard__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ff-mcard__body { padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.ff-mcard__alt { font-size: 12px; color: var(--ff-text-dim); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 16px; }
+
+@media (max-width: 600px) {
+	.ff-mediagrid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+	.ff-main { padding: 18px 16px 50px; }
 }

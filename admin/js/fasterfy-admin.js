@@ -55,9 +55,11 @@
 		caps: DATA.capabilities || {},
 		summary: null,
 		queue: null,
-		media: { items: [], total: 0, page: 1, status: 'all', loading: false },
+		media: { items: [], total: 0, page: 1, status: 'all', view: ( ( function () { try { return localStorage.getItem( 'fasterfy_media_view' ) || 'list'; } catch ( e ) { return 'list'; } } )() ), loading: false },
 		logs: { items: [], total: 0, page: 1, loading: false },
-		polling: null
+		polling: null,
+		driving: false,
+		driveErrors: 0
 	};
 
 	/* ============================================================
@@ -289,9 +291,13 @@
 	function viewMedia( view ) {
 		view.innerHTML = topbar( 'Biblioteca', 'Optimización retroactiva y mutación nativa de medios.', '' ) +
 			bulkActionsCard() +
-			'<div class="ff-toolbar">' +
+			'<div class="ff-toolbar" style="justify-content:space-between">' +
 				'<div class="ff-tabs" data-action="media-tab">' +
 					tabBtn( 'all', 'Todos' ) + tabBtn( 'pending', 'Pendientes' ) + tabBtn( 'optimized', 'Optimizados' ) +
+				'</div>' +
+				'<div class="ff-tabs" data-action="media-view">' +
+					'<button data-view="list" class="' + ( 'grid' !== State.media.view ? 'is-active' : '' ) + '">☰ Lista</button>' +
+					'<button data-view="grid" class="' + ( 'grid' === State.media.view ? 'is-active' : '' ) + '">▦ Cuadrícula</button>' +
 				'</div>' +
 			'</div>' +
 			'<div class="ff-card"><div id="ff-media-table"></div></div>';
@@ -311,7 +317,7 @@
 		}
 		return '<div class="ff-card ff-card--pad-lg" style="margin-bottom:18px">' +
 			'<h3>Acciones masivas</h3>' +
-			'<p class="ff-muted" style="margin:-6px 0 16px;font-size:13px">Procesa toda la biblioteca en segundo plano, por lotes. Puedes cerrar esta página: el trabajo continúa en el servidor.</p>' +
+			'<p class="ff-muted" style="margin:-6px 0 16px;font-size:13px">Procesa toda la biblioteca por lotes. Mantén esta pestaña abierta mientras avanza la barra de progreso.</p>' +
 			'<div class="ff-row" id="ff-bulk-buttons">' + buttons + '</div>' +
 			( aiOn ? '' : '<p class="ff-muted ff-mt" style="font-size:12px">💡 Activa la IA en la pestaña <b>IA & SEO</b> para generar textos en lote.</p>' ) +
 			'<div id="ff-media-queue" class="ff-mt"></div>' +
@@ -324,7 +330,7 @@
 			State.queue = res.queue;
 			if ( State.summary ) { State.summary.library = res.library; State.summary.queue = res.queue; }
 			renderMediaQueueBar();
-			if ( res.queue.status === 'running' ) { startPolling(); }
+			if ( res.queue.status === 'running' ) { startDriving(); }
 		} ).catch( function () {} );
 	}
 
@@ -357,6 +363,41 @@
 		return '<button data-status="' + id + '" class="' + ( State.media.status === id ? 'is-active' : '' ) + '">' + label + '</button>';
 	}
 
+	/** Botones de acción de un elemento (compartidos por lista y cuadrícula). */
+	function mediaItemActions( it ) {
+		var a = '<button class="ff-btn ff-btn--sm" data-action="optimize-one" data-id="' + it.id + '">Optimizar</button>';
+		if ( State.settings.ai && State.settings.ai.enabled ) {
+			a += '<button class="ff-btn ff-btn--sm" data-action="ai-one" data-id="' + it.id + '">IA</button>';
+		}
+		if ( it.has_backup ) {
+			a += '<button class="ff-btn ff-btn--sm ff-btn--danger" data-action="rollback-one" data-id="' + it.id + '">Revertir</button>';
+		}
+		return a;
+	}
+
+	/** Etiqueta del estado de IA. */
+	function aiBadge( it ) {
+		if ( 'error' === it.ai_status ) { return '<span class="ff-badge ff-badge--error">IA ✕</span>'; }
+		if ( 'done' === it.ai_status ) { return '<span class="ff-badge ff-badge--optimized">IA ✓</span>'; }
+		if ( 'blocked' === it.ai_status ) { return '<span class="ff-badge ff-badge--blocked">bloqueado</span>'; }
+		return '';
+	}
+
+	/** Tarjeta de un elemento para la vista en cuadrícula. */
+	function mediaCard( it ) {
+		return '<div class="ff-mcard">' +
+			'<div class="ff-mcard__thumb"><img src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></div>' +
+			'<div class="ff-mcard__body">' +
+				'<div class="ff-row" style="gap:6px;flex-wrap:wrap">' +
+					'<span class="ff-badge ff-badge--' + it.status + '">' + h( it.status ) + '</span>' + aiBadge( it ) +
+				'</div>' +
+				'<div class="ff-mcard__alt">' + ( it.alt ? h( it.alt ) : '<i class="ff-muted">sin alt text</i>' ) + '</div>' +
+				( it.saved_bytes ? '<div class="ff-muted" style="font-size:11px">Ahorro: <b style="color:var(--ff-accent)">' + bytes( it.saved_bytes ) + '</b></div>' : '' ) +
+				'<div class="ff-row-actions" style="justify-content:flex-start;flex-wrap:wrap;margin-top:auto">' + mediaItemActions( it ) + '</div>' +
+			'</div>' +
+		'</div>';
+	}
+
 	function renderMediaTable() {
 		var el = document.getElementById( 'ff-media-table' );
 		if ( ! el ) { return; }
@@ -368,34 +409,33 @@
 			el.innerHTML = '<div class="ff-empty">No hay activos en esta vista.</div>';
 			return;
 		}
+
+		var pages = Math.ceil( State.media.total / 24 );
+		var pager = pagination( State.media.page, pages, 'media-page' );
+
+		// Vista en cuadrícula (ideal para pantallas pequeñas).
+		if ( 'grid' === State.media.view ) {
+			el.innerHTML = '<div class="ff-mediagrid">' + State.media.items.map( mediaCard ).join( '' ) + '</div>' + pager;
+			return;
+		}
+
+		// Vista en lista (tabla).
 		var rows = State.media.items.map( function ( it ) {
 			var badge = '<span class="ff-badge ff-badge--' + it.status + '">' + h( it.status ) + '</span>';
-			var actions = '<div class="ff-row-actions">';
-			actions += '<button class="ff-btn ff-btn--sm" data-action="optimize-one" data-id="' + it.id + '">Optimizar</button>';
-			if ( State.settings.ai && State.settings.ai.enabled ) {
-				actions += '<button class="ff-btn ff-btn--sm" data-action="ai-one" data-id="' + it.id + '">IA</button>';
-			}
-			if ( it.has_backup ) {
-				actions += '<button class="ff-btn ff-btn--sm ff-btn--danger" data-action="rollback-one" data-id="' + it.id + '">Revertir</button>';
-			}
-			actions += '</div>';
-
 			return '<tr data-row="' + it.id + '">' +
-				'<td><img class="ff-thumb" src="' + ( it.thumb || '' ) + '" alt=""></td>' +
+				'<td><img class="ff-thumb" src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></td>' +
 				'<td><b>#' + it.id + '</b><br><span class="ff-muted">' + h( it.mime ) + '</span></td>' +
 				'<td>' + badge + ( it.format_to ? '<br><span class="ff-muted" style="font-size:11px">' + h( it.format_to ) + '</span>' : '' ) + '</td>' +
 				'<td>' + ( it.saved_bytes ? '<b style="color:var(--ff-accent)">' + bytes( it.saved_bytes ) + '</b>' : '<span class="ff-muted">—</span>' ) + '</td>' +
-				'<td class="ff-muted" style="max-width:280px">' + ( it.alt ? h( it.alt ) : '<i>sin alt text</i>' ) +
-					( 'error' === it.ai_status ? ' <span class="ff-badge ff-badge--error">IA ✕</span>' : ( 'done' === it.ai_status ? ' <span class="ff-badge ff-badge--optimized">IA ✓</span>' : ( 'blocked' === it.ai_status ? ' <span class="ff-badge ff-badge--blocked">bloqueado</span>' : '' ) ) ) + '</td>' +
-				'<td>' + actions + '</td>' +
+				'<td class="ff-muted" style="max-width:280px">' + ( it.alt ? h( it.alt ) : '<i>sin alt text</i>' ) + ' ' + aiBadge( it ) + '</td>' +
+				'<td><div class="ff-row-actions">' + mediaItemActions( it ) + '</div></td>' +
 			'</tr>';
 		} ).join( '' );
 
-		var pages = Math.ceil( State.media.total / 20 );
 		el.innerHTML =
 			'<table class="ff-table"><thead><tr>' +
 				'<th></th><th>ID</th><th>Estado</th><th>Ahorro</th><th>Alt text (IA)</th><th></th>' +
-			'</tr></thead><tbody>' + rows + '</tbody></table>' + pagination( State.media.page, pages, 'media-page' );
+			'</tr></thead><tbody>' + rows + '</tbody></table>' + pager;
 	}
 
 	function pagination( page, pages, action ) {
@@ -662,7 +702,7 @@
 	function loadMedia() {
 		State.media.loading = true;
 		renderMediaTable();
-		return Api.get( '/media?status=' + State.media.status + '&page=' + State.media.page + '&per_page=20' )
+		return Api.get( '/media?status=' + State.media.status + '&page=' + State.media.page + '&per_page=24' )
 			.then( function ( res ) {
 				State.media.items = res.items;
 				State.media.total = res.total;
@@ -684,24 +724,40 @@
 	/* ============================================================
 	 * Polling de la cola
 	 * ============================================================ */
-	function startPolling() {
-		stopPolling();
-		State.polling = setInterval( function () {
-			Api.get( '/queue/status' ).then( function ( res ) {
-				State.queue = res.queue;
-				if ( State.summary ) { State.summary.library = res.library; State.summary.queue = res.queue; }
-				updateQueueViews();
-				if ( res.queue.status !== 'running' ) {
-					stopPolling();
-					if ( 'completed' === res.queue.status ) { toast( 'Procesamiento completado 🎉', 'success' ); }
-					if ( 'exhausted' === res.queue.status ) { toast( 'Cola pausada: cuota de créditos agotada.', 'info' ); }
-					if ( 'media' === State.route ) { loadMedia(); }
-				}
-			} );
-		}, 2500 );
+	function startDriving() {
+		if ( State.driving ) { return; }
+		State.driving = true;
+		State.driveErrors = 0;
+		driveTick();
 	}
-	function stopPolling() {
-		if ( State.polling ) { clearInterval( State.polling ); State.polling = null; }
+	function stopDriving() {
+		State.driving = false;
+	}
+	function driveTick() {
+		if ( ! State.driving ) { return; }
+		Api.post( '/queue/run' ).then( function ( res ) {
+			State.driveErrors = 0;
+			State.queue = res.queue;
+			if ( State.summary ) { State.summary.library = res.library; State.summary.queue = res.queue; }
+			updateQueueViews();
+			if ( 'running' === res.queue.status ) {
+				setTimeout( driveTick, 500 );
+			} else {
+				stopDriving();
+				if ( 'completed' === res.queue.status ) { toast( 'Procesamiento completado 🎉', 'success' ); }
+				if ( 'exhausted' === res.queue.status ) { toast( 'Cola pausada: cuota de créditos agotada.', 'info' ); }
+				if ( 'media' === State.route ) { loadMedia(); }
+				if ( 'dashboard' === State.route ) { loadSummary().then( renderDashboardBody ); }
+			}
+		} ).catch( function ( e ) {
+			State.driveErrors = ( State.driveErrors || 0 ) + 1;
+			if ( State.driveErrors > 3 ) {
+				stopDriving();
+				toast( 'Procesamiento detenido por errores repetidos: ' + e.message, 'error' );
+			} else {
+				setTimeout( driveTick, 2500 );
+			}
+		} );
 	}
 
 	/* ============================================================
@@ -734,21 +790,29 @@
 				Api.post( '/queue/start', { mode: mode } ).then( function ( res ) {
 					State.queue = res.queue; toast( 'Procesamiento iniciado en segundo plano.', 'success' );
 					updateQueueViews();
-					startPolling();
+					startDriving();
 				} ).catch( function ( er ) { toast( er.message, 'error' ); } );
 				break;
 			case 'pause-queue':
-				Api.post( '/queue/pause' ).then( function ( res ) { State.queue = res.queue; stopPolling(); updateQueueViews(); toast( 'Cola pausada.', 'info' ); } );
+				Api.post( '/queue/pause' ).then( function ( res ) { State.queue = res.queue; stopDriving(); updateQueueViews(); toast( 'Cola pausada.', 'info' ); } );
 				break;
 			case 'resume-queue':
-				Api.post( '/queue/resume' ).then( function ( res ) { State.queue = res.queue; startPolling(); updateQueueViews(); toast( 'Cola reanudada.', 'success' ); } );
+				Api.post( '/queue/resume' ).then( function ( res ) { State.queue = res.queue; startDriving(); updateQueueViews(); toast( 'Cola reanudada.', 'success' ); } );
 				break;
 			case 'cancel-queue':
-				Api.post( '/queue/cancel' ).then( function ( res ) { State.queue = res.queue; stopPolling(); updateQueueViews(); toast( 'Cola detenida.', 'info' ); } );
+				Api.post( '/queue/cancel' ).then( function ( res ) { State.queue = res.queue; stopDriving(); updateQueueViews(); toast( 'Cola detenida.', 'info' ); } );
 				break;
 			case 'media-tab':
 				var statusBtn = e.target.closest( '[data-status]' );
 				if ( statusBtn ) { State.media.status = statusBtn.getAttribute( 'data-status' ); State.media.page = 1; renderRoute(); }
+				break;
+			case 'media-view':
+				var viewBtn = e.target.closest( '[data-view]' );
+				if ( viewBtn ) {
+					State.media.view = viewBtn.getAttribute( 'data-view' );
+					try { localStorage.setItem( 'fasterfy_media_view', State.media.view ); } catch ( err ) {}
+					renderRoute();
+				}
 				break;
 			case 'media-page':
 				State.media.page = parseInt( actionEl.getAttribute( 'data-page' ), 10 ); loadMedia();
@@ -814,7 +878,7 @@
 		renderShell();
 		// Si hay una cola en marcha al cargar, arranca el polling.
 		loadSummary().then( function ( res ) {
-			if ( res && res.queue && res.queue.status === 'running' ) { startPolling(); }
+			if ( res && res.queue && res.queue.status === 'running' ) { startDriving(); }
 			renderDashboardBody();
 		} );
 	}

@@ -190,7 +190,8 @@ final class QueueManager implements Bootable {
 			'queue'
 		);
 
-		$this->enqueue_next_batch( 0 );
+		// El navegador conduce el proceso por lotes (run_batch). No dependemos
+		// de WP-Cron aquí, para garantizar fiabilidad en cualquier hosting.
 		return $state;
 	}
 
@@ -211,7 +212,6 @@ final class QueueManager implements Bootable {
 	 */
 	public function resume(): array {
 		$state = $this->set_state( [ 'status' => 'running' ] );
-		$this->enqueue_next_batch( 0 );
 		return $state;
 	}
 
@@ -371,6 +371,78 @@ final class QueueManager implements Bootable {
 			$this->set_state( [ 'status' => 'completed' ] );
 			$this->logger->info( __( 'Procesamiento de la biblioteca completado.', 'fasterfy' ), 'queue' );
 		}
+	}
+
+	/**
+	 * Procesa UN lote de forma síncrona y devuelve el estado, SIN programar
+	 * el siguiente (el navegador es quien encadena las llamadas). Esto hace
+	 * que el procesamiento masivo funcione de forma fiable en cualquier host,
+	 * sin depender de WP-Cron ni de Action Scheduler.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function run_batch(): array {
+		$state = $this->get_state();
+		if ( 'running' !== $state['status'] ) {
+			return $state;
+		}
+
+		if ( $this->is_quota_exhausted() ) {
+			$this->logger->warning( __( 'Cola pausada: cuota de créditos agotada.', 'fasterfy' ), 'quota' );
+			return $this->set_state( [ 'status' => 'exhausted' ] );
+		}
+
+		$mode      = (string) $state['mode'];
+		$overrides = (array) $state['overrides'];
+
+		// Lotes más pequeños cuando interviene la IA (peticiones de red lentas).
+		$limit = ( 'optimize' === $mode )
+			? (int) $this->settings->get( 'throttling.batch_size', 10 )
+			: 3;
+		$limit = max( 1, min( 10, $limit ) );
+
+		$ids = ( 'ai' === $mode )
+			? $this->scanner->ai_pending_ids( $limit )
+			: $this->scanner->pending_ids( $limit );
+
+		if ( empty( $ids ) ) {
+			return $this->set_state( [ 'status' => 'completed' ] );
+		}
+
+		foreach ( $ids as $id ) {
+			$outcome = $this->process_item( (int) $id, $mode, $overrides );
+
+			$state['processed'] = (int) $state['processed'] + 1;
+			if ( 'success' === $outcome ) {
+				$state['succeeded'] = (int) $state['succeeded'] + 1;
+			} elseif ( 'skipped' === $outcome ) {
+				$state['skipped'] = (int) $state['skipped'] + 1;
+			} else {
+				$state['failed'] = (int) $state['failed'] + 1;
+				if ( in_array( $mode, [ 'optimize', 'both' ], true ) ) {
+					update_post_meta( (int) $id, '_fasterfy_status', 'error' );
+				}
+			}
+		}
+
+		$this->set_state(
+			[
+				'processed' => $state['processed'],
+				'succeeded' => $state['succeeded'],
+				'failed'    => $state['failed'],
+				'skipped'   => $state['skipped'],
+			]
+		);
+
+		$remaining = ( 'ai' === $mode )
+			? $this->scanner->count_ai_pending()
+			: $this->scanner->count_pending();
+
+		if ( $remaining <= 0 ) {
+			return $this->set_state( [ 'status' => 'completed' ] );
+		}
+
+		return $this->get_state();
 	}
 
 	/**

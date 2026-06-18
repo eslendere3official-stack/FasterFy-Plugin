@@ -75,6 +75,12 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 
 == Changelog ==
 
+= 1.0.4 =
+* IMPORTANTE: las imágenes ya convertidas a WebP/AVIF vuelven a aparecer en la biblioteca del plugin (antes desaparecían y no se les podía aplicar IA ni revertir).
+* Procesamiento masivo fiable: ahora lo conduce el navegador por lotes (run_batch), sin depender de WP-Cron, que en muchos hosts no se ejecuta. Las acciones globales ya funcionan.
+* Nueva vista en cuadrícula en la biblioteca (además de la lista), ideal para pantallas pequeñas. Se recuerda la preferencia.
+* UI: títulos legibles en tema oscuro (se forzaba el color oscuro de wp-admin).
+
 = 1.0.3 =
 * Acciones masivas en la Biblioteca: "Optimizar todo", "Optimizar + IA (todo)" y "Generar textos IA (todo)".
 * Nueva cola de IA independiente que detecta y reprocesa los activos sin texto, con reintentos automáticos (hasta 3) para tolerar límites de velocidad de la API.
