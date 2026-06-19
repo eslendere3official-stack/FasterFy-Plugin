@@ -65,3 +65,26 @@ Plugin nativo de WordPress (PHP 8+) para optimización de medios:
 - `php -l` en los archivos PHP modificados.
 - `node --check admin/js/fasterfy-admin.js`.
 - Subir versión en `fasterfy.php` (cabecera + `FASTERFY_VERSION`) y `readme.txt`.
+
+
+## Modelo de negocio y hoja de ruta comercial (IMPORTANTE)
+Objetivo del dueño: vender FasterFy como **producto por suscripción (SaaS)**.
+- **Mercados objetivo**: LATAM y, sobre todo, **Estados Unidos**.
+- **Idioma**: debe ser **multilenguaje**, con **inglés como idioma base/por defecto** y
+  español como segunda traducción. (Hoy las cadenas están en español; pendiente migrar
+  el idioma fuente a inglés y traducir a es_ES.)
+- **Modelo**: suscripción basada en consumo (créditos de assets / uso de IA), alineado
+  con la arquitectura cloud original. Lite gratis + Pro de pago.
+
+### Implicaciones técnicas a respetar de aquí en adelante
+- Escribir **nuevas cadenas en inglés** y envolverlas en i18n:
+  - PHP: `__()`, `esc_html__()` con text domain `fasterfy`.
+  - JS: migrar a `wp.i18n` (`wp-i18n`) en lugar de texto fijo en el SPA.
+- Generar `languages/fasterfy.pot` y mantener `es_ES`.
+- Mantener la separación Lite/Pro como base del paywall (free en WordPress.org, Pro de pago).
+
+### Stack de licencias/cobros sugerido (a decidir)
+- **Freemius** (llave en mano: licencias, pagos, suscripciones, actualizaciones, analítica) — más simple.
+- **Easy Digital Downloads + Software Licensing + Recurring** (autoalojado, más control).
+- **Lemon Squeezy / Paddle** como *Merchant of Record* (gestionan impuestos/VAT de EE.UU. y global).
+- Entrega de actualizaciones Pro vía servidor propio o el de la plataforma elegida.
