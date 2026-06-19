@@ -75,6 +75,10 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 
 == Changelog ==
 
+= 1.0.7 =
+* Seguridad: la reescritura de datos serializados usa unserialize con allowed_classes=false (previene PHP object injection).
+* Seguridad: el endpoint de rollback valida que el ID sea un adjunto.
+
 = 1.0.6 =
 * CORRECCIÓN IA: el modo "Optimizar + IA" ahora también genera textos en imágenes ya optimizadas (antes terminaba sin hacer nada si la optimización ya estaba completa).
 * Selección de imágenes: casillas en la galería (lista y cuadrícula) para optimizar, generar IA o revertir SOLO las fotos elegidas.

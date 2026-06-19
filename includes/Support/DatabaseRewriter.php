@@ -110,7 +110,7 @@ final class DatabaseRewriter {
 	 * @return string
 	 */
 	private static function replace_in_serialized( string $serialized, string $from, string $to ): string {
-		$data = @unserialize( $serialized ); // phpcs:ignore
+		$data = @unserialize( $serialized, [ 'allowed_classes' => false ] ); // phpcs:ignore
 		if ( false === $data && 'b:0;' !== $serialized ) {
 			return $serialized;
 		}

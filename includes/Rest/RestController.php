@@ -240,7 +240,7 @@ final class RestController implements Bootable {
 	 */
 	public function rollback_item( WP_REST_Request $request ): WP_REST_Response {
 		$id = absint( $request->get_param( 'id' ) );
-		if ( ! $id ) {
+		if ( ! $id || 'attachment' !== get_post_type( $id ) ) {
 			return $this->error( __( 'Adjunto inválido.', 'fasterfy' ), 400 );
 		}
 		$ok = $this->core->backup()->rollback( $id );
