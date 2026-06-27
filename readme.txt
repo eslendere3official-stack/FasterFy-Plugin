@@ -75,6 +75,9 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 
 == Changelog ==
 
+= 1.0.8 =
+* Cumplimiento: divulgación de IA dentro del panel (transparencia) y carpeta legal/ con plantillas de Términos, Privacidad, divulgación de IA y checklist de cumplimiento SaaS adaptado.
+
 = 1.0.7 =
 * Seguridad: la reescritura de datos serializados usa unserialize con allowed_classes=false (previene PHP object injection).
 * Seguridad: el endpoint de rollback valida que el ID sea un adjunto.

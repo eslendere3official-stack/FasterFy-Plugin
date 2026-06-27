@@ -88,3 +88,18 @@ Objetivo del dueño: vender FasterFy como **producto por suscripción (SaaS)**.
 - **Easy Digital Downloads + Software Licensing + Recurring** (autoalojado, más control).
 - **Lemon Squeezy / Paddle** como *Merchant of Record* (gestionan impuestos/VAT de EE.UU. y global).
 - Entrega de actualizaciones Pro vía servidor propio o el de la plataforma elegida.
+
+
+## Legal y cumplimiento (carpeta `legal/`)
+Kit inicial de cumplimiento para SaaS (NO es asesoría legal; revisar con abogado):
+- `legal/COMPLIANCE-CHECKLIST.md` — los 5 cimientos adaptados a FasterFy con estado real.
+- `legal/TERMS-OF-SERVICE-TEMPLATE.md` y `legal/PRIVACY-POLICY-TEMPLATE.md` — plantillas (inglés) para la web de venta.
+- `legal/AI-DISCLOSURE.md` — divulgación de IA (resumen mostrado dentro del panel).
+
+Distinción clave de responsabilidades:
+- Plugin autoalojado → el CLIENTE es responsable de datos; el vendedor debe divulgar IA y qué datos salen.
+- Web de venta → Términos, Privacidad, cookies, pagos (Stripe/Paddle/Lemon Squeezy), impuestos (Merchant of Record).
+- SaaS en la nube (futuro, API key en servidor propio) → obligaciones completas de responsable de datos.
+
+Pendientes legales (tu tarea, fuera del código): estructura legal/fiscal, publicar Términos/Privacidad,
+banner de cookies, DPAs de subprocesadores (proveedor de IA, hosting, pagos), procesador de pagos + impuestos.

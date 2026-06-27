@@ -562,6 +562,7 @@
 		view.innerHTML = topbar( 'IA & SEO', 'Reconocimiento de imagen, generación de Alt Text y moderación.',
 			'<button class="ff-btn" data-action="ai-test">🔌 Probar conexión</button>' ) +
 			'<div class="ff-card ff-card--pad-lg ff-mt">' +
+				'<div class="ff-ai-note">🔎 FasterFy envía la imagen al proveedor de IA que configures para generar el texto. Los resultados pueden contener errores y conviene revisarlos; no sustituyen el criterio humano. No se usan tus imágenes para entrenar modelos. Recuerda declarar tu proveedor de IA en tu política de privacidad.</div>' +
 				'<div class="ff-settings-grid">' +
 					'<div class="ff-section-title">Modelo multimodal</div>' +
 					toggleField( 'ai.enabled', 'Activar IA', ai.enabled, 'Habilita el análisis de visión y la generación de metadatos.' ) +
