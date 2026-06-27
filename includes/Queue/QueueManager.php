@@ -30,6 +30,7 @@ final class QueueManager implements Bootable {
 	public const ITEM_HOOK    = 'fasterfy_process_item';
 	public const STATE_OPTION = 'fasterfy_queue_state';
 	public const AS_GROUP     = 'fasterfy';
+	public const LOCK_KEY     = 'fasterfy_queue_lock';
 
 	private Settings $settings;
 	private Logger $logger;
@@ -417,53 +418,94 @@ final class QueueManager implements Bootable {
 			return $this->set_state( [ 'status' => 'exhausted' ] );
 		}
 
-		$mode      = (string) $state['mode'];
-		$overrides = (array) $state['overrides'];
-
-		// Lotes más pequeños cuando interviene la IA (peticiones de red lentas).
-		$limit = ( 'optimize' === $mode )
-			? (int) $this->settings->get( 'throttling.batch_size', 10 )
-			: 3;
-		$limit = max( 1, min( 10, $limit ) );
-
-		$ids = $this->pending_for_mode( $mode, $limit );
-
-		if ( empty( $ids ) ) {
-			return $this->set_state( [ 'status' => 'completed' ] );
+		// Bloqueo de concurrencia: evita que dos peticiones (p. ej. dos pestañas
+		// o WP-Cron) procesen a la vez y corrompan el estado o dupliquen trabajo.
+		if ( ! $this->acquire_lock() ) {
+			return $state; // Otro proceso está trabajando; el navegador reintentará.
 		}
 
-		foreach ( $ids as $id ) {
-			$outcome = $this->process_item( (int) $id, $mode, $overrides );
+		try {
+			$mode      = (string) $state['mode'];
+			$overrides = (array) $state['overrides'];
 
-			$state['processed'] = (int) $state['processed'] + 1;
-			if ( 'success' === $outcome ) {
-				$state['succeeded'] = (int) $state['succeeded'] + 1;
-			} elseif ( 'skipped' === $outcome ) {
-				$state['skipped'] = (int) $state['skipped'] + 1;
-			} else {
-				$state['failed'] = (int) $state['failed'] + 1;
-				if ( in_array( $mode, [ 'optimize', 'both' ], true ) ) {
-					update_post_meta( (int) $id, '_fasterfy_status', 'error' );
+			// Lotes más pequeños cuando interviene la IA (peticiones de red lentas).
+			$limit = ( 'optimize' === $mode )
+				? (int) $this->settings->get( 'throttling.batch_size', 10 )
+				: 3;
+			$limit = max( 1, min( 10, $limit ) );
+
+			$ids = $this->pending_for_mode( $mode, $limit );
+
+			if ( empty( $ids ) ) {
+				return $this->set_state( [ 'status' => 'completed' ] );
+			}
+
+			// Presupuesto de tiempo: no exceder ~20 s por petición para no chocar
+			// con el max_execution_time / timeouts de hosts compartidos.
+			$deadline = microtime( true ) + 20.0;
+
+			foreach ( $ids as $id ) {
+				$outcome = $this->process_item( (int) $id, $mode, $overrides );
+
+				$state['processed'] = (int) $state['processed'] + 1;
+				if ( 'success' === $outcome ) {
+					$state['succeeded'] = (int) $state['succeeded'] + 1;
+				} elseif ( 'skipped' === $outcome ) {
+					$state['skipped'] = (int) $state['skipped'] + 1;
+				} else {
+					$state['failed'] = (int) $state['failed'] + 1;
+					if ( in_array( $mode, [ 'optimize', 'both' ], true ) ) {
+						update_post_meta( (int) $id, '_fasterfy_status', 'error' );
+					}
+				}
+
+				if ( microtime( true ) >= $deadline ) {
+					break; // Continúa en el siguiente tick del navegador.
 				}
 			}
+
+			$this->set_state(
+				[
+					'processed' => $state['processed'],
+					'succeeded' => $state['succeeded'],
+					'failed'    => $state['failed'],
+					'skipped'   => $state['skipped'],
+				]
+			);
+
+			$remaining = $this->count_for_mode( $mode );
+
+			if ( $remaining <= 0 ) {
+				return $this->set_state( [ 'status' => 'completed' ] );
+			}
+
+			return $this->get_state();
+		} finally {
+			$this->release_lock();
 		}
+	}
 
-		$this->set_state(
-			[
-				'processed' => $state['processed'],
-				'succeeded' => $state['succeeded'],
-				'failed'    => $state['failed'],
-				'skipped'   => $state['skipped'],
-			]
-		);
-
-		$remaining = $this->count_for_mode( $mode );
-
-		if ( $remaining <= 0 ) {
-			return $this->set_state( [ 'status' => 'completed' ] );
+	/**
+	 * Intenta adquirir el bloqueo de procesamiento (con auto-expiración).
+	 *
+	 * @return bool True si se adquirió.
+	 */
+	private function acquire_lock(): bool {
+		if ( get_transient( self::LOCK_KEY ) ) {
+			return false;
 		}
+		// TTL de seguridad: si una petición muere sin liberar, el lock expira solo.
+		set_transient( self::LOCK_KEY, time(), 2 * MINUTE_IN_SECONDS );
+		return true;
+	}
 
-		return $this->get_state();
+	/**
+	 * Libera el bloqueo de procesamiento.
+	 *
+	 * @return void
+	 */
+	private function release_lock(): void {
+		delete_transient( self::LOCK_KEY );
 	}
 
 	/**

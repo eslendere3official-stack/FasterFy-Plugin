@@ -75,6 +75,11 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 
 == Changelog ==
 
+= 1.0.9 =
+* Resiliencia: bloqueo de concurrencia (lock con auto-expiración) que evita doble procesamiento si hay varias pestañas o WP-Cron activos.
+* Resiliencia: presupuesto de tiempo (~20s) por lote para evitar timeouts en hosts compartidos.
+* Documentación: docs/RESILIENCE.md (escenarios de fallo y prevención) y plantillas legales en español (legal/es/).
+
 = 1.0.8 =
 * Cumplimiento: divulgación de IA dentro del panel (transparencia) y carpeta legal/ con plantillas de Términos, Privacidad, divulgación de IA y checklist de cumplimiento SaaS adaptado.
 

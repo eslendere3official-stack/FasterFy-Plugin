@@ -103,3 +103,10 @@ Distinción clave de responsabilidades:
 
 Pendientes legales (tu tarea, fuera del código): estructura legal/fiscal, publicar Términos/Privacidad,
 banner de cookies, DPAs de subprocesadores (proveedor de IA, hosting, pagos), procesador de pagos + impuestos.
+
+
+## Resiliencia y escalabilidad
+Ver `docs/RESILIENCE.md`: escenarios que podrían romper el plugin (timeouts, memoria,
+concurrencia, rate limits de IA, disco, BD) con su estado y plan de prevención.
+Aplicado en v1.0.9: bloqueo de concurrencia (lock con auto-expiración) y presupuesto de
+tiempo (~20 s) en `run_batch`. Documentos legales en español: `legal/es/`.
