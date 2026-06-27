@@ -110,3 +110,17 @@ Ver `docs/RESILIENCE.md`: escenarios que podrían romper el plugin (timeouts, me
 concurrencia, rate limits de IA, disco, BD) con su estado y plan de prevención.
 Aplicado en v1.0.9: bloqueo de concurrencia (lock con auto-expiración) y presupuesto de
 tiempo (~20 s) en `run_batch`. Documentos legales en español: `legal/es/`.
+
+
+## Panel de administración del dueño (cómo se controla el negocio)
+Existen hasta 3 paneles distintos:
+1. **Panel del plugin** (en WordPress) → lo usa el CLIENTE en su sitio. YA construido.
+2. **Panel de negocio** (licencias, cobros, ventas, entrega de actualizaciones) → es el
+   panel del DUEÑO y lo aporta la plataforma elegida (NO se programa). Recomendado:
+   **Freemius** (todo en uno para plugins WP); alternativa MoR: Lemon Squeezy / Paddle.
+3. **Panel SaaS en la nube** (cuentas, créditos, uso por cliente, logs) → solo si se
+   centraliza la IA en servidor propio; habría que construirlo. Fase futura.
+
+Hoy (plugin autoalojado): el dueño NO accede al WordPress de los clientes (mejor para
+privacidad y responsabilidad legal). El "centro de mando" del dueño = dashboard de la
+plataforma de cobros/licencias.
