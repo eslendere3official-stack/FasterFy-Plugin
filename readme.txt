@@ -75,6 +75,10 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 
 == Changelog ==
 
+= 1.0.11 =
+* CORRECCIÓN IA (importante): los modelos de visión no leen AVIF. Ahora el plugin envía una copia JPEG redimensionada para el análisis, así la generación de texto funciona con imágenes AVIF/WebP/cualquier formato.
+* AVIF: la conversión de PNG usa el "Formato objetivo" elegido (WebP o AVIF, ambos conservan transparencia).
+
 = 1.0.10 =
 * CORRECCIÓN PNG: la compresión ahora reduce de verdad. Si comprimir el PNG no ahorra (común en hosts con GD), se convierte a WebP conservando transparencia y se elige el resultado más pequeño.
 * UX: acciones masivas unificadas con las de selección y por imagen (Optimizar / Generar IA / Revertir), para no confundir.

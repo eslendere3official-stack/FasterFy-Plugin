@@ -94,7 +94,13 @@ final class OpenAIProvider implements AIProvider {
 			return VisionResult::fail( __( 'La imagen no es legible para el análisis.', 'fasterfy' ) );
 		}
 
-		$data_uri = $this->to_data_uri( $image_path );
+		// Los modelos de visión no soportan AVIF (y limitan el tamaño): preparamos
+		// una copia JPEG redimensionada solo para el análisis.
+		$prepared = $this->prepare_for_vision( $image_path );
+		$data_uri = $this->to_data_uri( $prepared['path'], $prepared['mime'] );
+		if ( $prepared['temp'] && file_exists( $prepared['path'] ) ) {
+			@unlink( $prepared['path'] ); // phpcs:ignore
+		}
 		if ( '' === $data_uri ) {
 			return VisionResult::fail( __( 'No se pudo preparar la imagen para el análisis.', 'fasterfy' ) );
 		}
@@ -243,13 +249,49 @@ final class OpenAIProvider implements AIProvider {
 	}
 
 	/**
-	 * Convierte la imagen a un data URI base64 (reescalando si es enorme).
+	 * Prepara una copia de la imagen apta para modelos de visión: la reencodea a
+	 * JPEG (universalmente soportado; AVIF/otros no siempre lo están) y la
+	 * redimensiona para limitar el tamaño del envío.
+	 *
+	 * @param string $image_path Ruta original.
+	 * @return array{path: string, mime: string, temp: bool}
+	 */
+	private function prepare_for_vision( string $image_path ): array {
+		$mime = (string) ( wp_check_filetype( $image_path )['type'] ?? '' );
+
+		// SVG: se envía como texto (algunos modelos lo aceptan).
+		if ( 'image/svg+xml' === $mime ) {
+			return [ 'path' => $image_path, 'mime' => 'image/svg+xml', 'temp' => false ];
+		}
+
+		if ( function_exists( 'wp_get_image_editor' ) ) {
+			$editor = wp_get_image_editor( $image_path );
+			if ( ! is_wp_error( $editor ) ) {
+				$editor->resize( 1280, 1280, false );
+				$editor->set_quality( 85 );
+				$tmp   = trailingslashit( get_temp_dir() ) . 'fasterfy-ai-' . wp_generate_password( 8, false ) . '.jpg';
+				$saved = $editor->save( $tmp, 'image/jpeg' );
+				if ( ! is_wp_error( $saved ) && ! empty( $saved['path'] ) && file_exists( $saved['path'] ) ) {
+					return [ 'path' => $saved['path'], 'mime' => 'image/jpeg', 'temp' => true ];
+				}
+			}
+		}
+
+		// Respaldo: enviar el original tal cual.
+		return [ 'path' => $image_path, 'mime' => '' !== $mime ? $mime : 'image/jpeg', 'temp' => false ];
+	}
+
+	/**
+	 * Convierte la imagen a un data URI base64.
 	 *
 	 * @param string $image_path Ruta.
+	 * @param string $mime       MIME forzado (opcional).
 	 * @return string
 	 */
-	private function to_data_uri( string $image_path ): string {
-		$mime = (string) ( wp_check_filetype( $image_path )['type'] ?? '' );
+	private function to_data_uri( string $image_path, string $mime = '' ): string {
+		if ( '' === $mime ) {
+			$mime = (string) ( wp_check_filetype( $image_path )['type'] ?? '' );
+		}
 		if ( '' === $mime ) {
 			$mime = 'image/jpeg';
 		}

@@ -600,9 +600,9 @@
 			'<div class="ff-card ff-card--pad-lg ff-mt">' +
 				'<div class="ff-settings-grid">' +
 					'<div class="ff-section-title">Conversión y compresión</div>' +
-					field( 'conversion.target_format', 'Formato objetivo (JPG)', selectInput( 'conversion.target_format', c.target_format, [ [ 'webp', 'WebP' ], [ 'avif', 'AVIF' ], [ 'auto', 'Automático (mejor disponible)' ] ] ) ) +
+					field( 'conversion.target_format', 'Formato objetivo (JPG/PNG)', selectInput( 'conversion.target_format', c.target_format, [ [ 'webp', 'WebP' ], [ 'avif', 'AVIF' ], [ 'auto', 'Automático (mejor disponible)' ] ] ) ) +
 					field( 'conversion.png_strategy', 'Estrategia PNG', selectInput( 'conversion.png_strategy', c.png_strategy, [ [ 'lossy', 'Con pérdida (cuantización)' ], [ 'lossless', 'Sin pérdida' ] ] ) ) +
-					toggleField( 'conversion.png_to_webp', 'Convertir PNG a WebP si ahorra más', c.png_to_webp, 'Recomendado: si comprimir el PNG no reduce tamaño, lo convierte a WebP (conserva transparencia).' ) +
+					toggleField( 'conversion.png_to_webp', 'Convertir PNG a WebP/AVIF si ahorra más', c.png_to_webp, 'Recomendado: usa el "Formato objetivo" elegido (WebP o AVIF, ambos conservan transparencia). Si no ahorra, intenta comprimir el PNG.' ) +
 					rangeField( 'conversion.webp_quality', 'Calidad WebP', c.webp_quality, 1, 100, 1 ) +
 					rangeField( 'conversion.avif_quality', 'Calidad AVIF', c.avif_quality, 1, 100, 1 ) +
 					( pro ? rangeField( 'conversion.png_max_colors', 'Colores PNG (lossy)', c.png_max_colors, 2, 256, 2 ) : '' ) +
