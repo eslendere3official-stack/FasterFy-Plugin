@@ -13,6 +13,7 @@ declare( strict_types=1 );
 namespace FasterFy\AI;
 
 use FasterFy\AI\Contracts\AIProvider;
+use FasterFy\Processors\ImageEngine;
 use FasterFy\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -277,7 +278,14 @@ final class OpenAIProvider implements AIProvider {
 			}
 		}
 
-		// Respaldo: enviar el original tal cual.
+		// Respaldo directo (Imagick/GD): garantiza AVIF/WebP → JPEG aunque el
+		// editor de WordPress no pueda con el formato.
+		$tmp2 = trailingslashit( get_temp_dir() ) . 'fasterfy-ai-' . wp_generate_password( 8, false ) . '.jpg';
+		if ( ( new ImageEngine() )->to_jpeg( $image_path, $tmp2, 1280, 85 ) && file_exists( $tmp2 ) ) {
+			return [ 'path' => $tmp2, 'mime' => 'image/jpeg', 'temp' => true ];
+		}
+
+		// Último recurso: enviar el original tal cual.
 		return [ 'path' => $image_path, 'mime' => '' !== $mime ? $mime : 'image/jpeg', 'temp' => false ];
 	}
 

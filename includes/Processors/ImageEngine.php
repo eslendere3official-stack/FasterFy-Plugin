@@ -284,6 +284,70 @@ final class ImageEngine {
 	}
 
 	/**
+	 * Genera una copia JPEG de cualquier imagen (incluido AVIF/WebP),
+	 * aplanando la transparencia sobre blanco y redimensionando. Pensado
+	 * para preparar imágenes para modelos de visión que no leen AVIF.
+	 *
+	 * @param string $source      Ruta origen.
+	 * @param string $destination Ruta destino (.jpg).
+	 * @param int    $max_width   Ancho máximo.
+	 * @param int    $quality     Calidad JPEG.
+	 * @return bool
+	 */
+	public function to_jpeg( string $source, string $destination, int $max_width = 1280, int $quality = 85 ): bool {
+		$caps = self::capabilities();
+
+		if ( $caps['imagick'] ) {
+			try {
+				$img = new \Imagick( $source );
+				if ( $img->getNumberImages() > 1 ) {
+					$img = $img->coalesceImages();
+				}
+				$img->setImageBackgroundColor( 'white' );
+				if ( method_exists( $img, 'mergeImageLayers' ) ) {
+					$img = $img->mergeImageLayers( \Imagick::LAYERMETHOD_FLATTEN );
+				} else {
+					$img->flattenImages();
+				}
+				if ( $max_width > 0 && $img->getImageWidth() > $max_width ) {
+					$img->resizeImage( $max_width, 0, \Imagick::FILTER_LANCZOS, 1 );
+				}
+				$img->setImageFormat( 'jpeg' );
+				$img->setImageCompressionQuality( $quality );
+				$written = $img->writeImage( $destination );
+				$img->clear();
+				$img->destroy();
+				if ( $written && file_exists( $destination ) ) {
+					return true;
+				}
+			} catch ( \Throwable $e ) {
+				unset( $e );
+			}
+		}
+
+		if ( $caps['gd'] ) {
+			$img = $this->gd_load( $source );
+			if ( ! $img ) {
+				return false;
+			}
+			$img = $this->gd_maybe_resize( $img, $max_width );
+			$w   = imagesx( $img );
+			$h   = imagesy( $img );
+			// Aplana sobre fondo blanco (JPEG no tiene alfa).
+			$canvas = imagecreatetruecolor( $w, $h );
+			$white  = imagecolorallocate( $canvas, 255, 255, 255 );
+			imagefilledrectangle( $canvas, 0, 0, $w, $h, $white );
+			imagecopy( $canvas, $img, 0, 0, 0, 0, $w, $h );
+			$ok = function_exists( 'imagejpeg' ) ? imagejpeg( $canvas, $destination, $quality ) : false;
+			imagedestroy( $img );
+			imagedestroy( $canvas );
+			return $ok && file_exists( $destination );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Carga una imagen con GD según su tipo.
 	 *
 	 * @param string $source Ruta.
@@ -303,6 +367,8 @@ final class ImageEngine {
 				return function_exists( 'imagecreatefromgif' ) ? @imagecreatefromgif( $source ) : false; // phpcs:ignore
 			case IMAGETYPE_WEBP:
 				return function_exists( 'imagecreatefromwebp' ) ? @imagecreatefromwebp( $source ) : false; // phpcs:ignore
+			case ( defined( 'IMAGETYPE_AVIF' ) ? IMAGETYPE_AVIF : -999 ):
+				return function_exists( 'imagecreatefromavif' ) ? @imagecreatefromavif( $source ) : false; // phpcs:ignore
 			default:
 				return false;
 		}

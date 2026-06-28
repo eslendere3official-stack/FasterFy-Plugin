@@ -75,6 +75,9 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 
 == Changelog ==
 
+= 1.0.12 =
+* IA en imágenes AVIF ya existentes: el plugin lee el AVIF guardado y crea una copia JPEG al vuelo para el análisis (no requiere re-subir las fotos). Respaldo robusto Imagick/GD para garantizar la conversión AVIF/WebP → JPEG.
+
 = 1.0.11 =
 * CORRECCIÓN IA (importante): los modelos de visión no leen AVIF. Ahora el plugin envía una copia JPEG redimensionada para el análisis, así la generación de texto funciona con imágenes AVIF/WebP/cualquier formato.
 * AVIF: la conversión de PNG usa el "Formato objetivo" elegido (WebP o AVIF, ambos conservan transparencia).
