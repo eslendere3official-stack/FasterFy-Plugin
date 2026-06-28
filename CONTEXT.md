@@ -124,3 +124,12 @@ Existen hasta 3 paneles distintos:
 Hoy (plugin autoalojado): el dueño NO accede al WordPress de los clientes (mejor para
 privacidad y responsabilidad legal). El "centro de mando" del dueño = dashboard de la
 plataforma de cobros/licencias.
+
+
+## Cómo retomar el proyecto en una sesión o cuenta nueva de Kiro
+El proyecto es portable; no depende de la memoria del chat. Para continuar:
+1. Asegura acceso al repo `EslenderE3/FasterFy-Plugin` (lectura para clonar; escritura para subir cambios).
+2. Conecta/clona el repositorio en la nueva sesión de Kiro.
+3. Pídele: "Lee CONTEXT.md, docs/PROGRESS.md y docs/RESILIENCE.md y continúa el proyecto FasterFy".
+Nota: una sesión/cuenta nueva NO recuerda conversaciones previas, pero estos documentos
+contienen arquitectura, decisiones, estado, backlog y dirección comercial para retomar sin pérdida.
