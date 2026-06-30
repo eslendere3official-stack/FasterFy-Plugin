@@ -133,3 +133,14 @@ El proyecto es portable; no depende de la memoria del chat. Para continuar:
 3. Pídele: "Lee CONTEXT.md, docs/PROGRESS.md y docs/RESILIENCE.md y continúa el proyecto FasterFy".
 Nota: una sesión/cuenta nueva NO recuerda conversaciones previas, pero estos documentos
 contienen arquitectura, decisiones, estado, backlog y dirección comercial para retomar sin pérdida.
+
+
+## Trabajo en paralelo: carpeta `landing/`
+El repositorio incluye una **landing page de pre-lanzamiento** (lista de espera + precios)
+en la carpeta `landing/`, creada en OTRA sesión de Kiro (ver `landing/HANDOFF.md`).
+Es independiente del plugin (no comparte archivos con `includes/`, `admin/`, etc.).
+
+Coordinación para evitar conflictos cuando hay sesiones en paralelo:
+- La sesión del PLUGIN trabaja en la raíz (`fasterfy.php`, `includes/`, `admin/`, `docs/`, `legal/`).
+- La sesión de la LANDING trabaja solo en `landing/`.
+- Antes de cambios grandes, hacer `pull` primero; los pushes se rechazan si el remoto avanzó.
