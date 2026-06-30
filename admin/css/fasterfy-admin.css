@@ -4,6 +4,10 @@
 
 /* Contenedor: ocupa todo el bloque de pantalla, sin márgenes. */
 .fasterfy-wrap { margin: 0; }
+/* Evita scroll de página: el pie de WP y el padding sobran en pantalla completa. */
+#wpbody-content { padding-bottom: 0 !important; }
+#wpfooter { display: none; }
+html.wp-toolbar { background: #141414; }
 
 .fasterfy-app {
 	/* Paleta y tokens */
@@ -26,7 +30,7 @@
 	--ff-glow: 0 0 0 1px rgba(51, 238, 51, 0.40), 0 10px 40px rgba(51, 238, 51, 0.22);
 
 	position: relative;
-	min-height: calc(100vh - 32px);
+	height: calc(100vh - 32px);
 	color: var(--ff-text);
 	background:
 		radial-gradient(1200px 600px at 80% -10%, rgba(51, 238, 51, 0.18), transparent 60%),
@@ -34,7 +38,7 @@
 		var(--ff-bg);
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
 	-webkit-font-smoothing: antialiased;
-	overflow: visible;
+	overflow: hidden;
 }
 
 .fasterfy-app[data-theme="light"] {
@@ -64,12 +68,12 @@
 @keyframes ffslide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
 
 /* ----- Layout principal ----- */
-.ff-shell { display: grid; grid-template-columns: 248px 1fr; min-height: calc(100vh - 32px); }
+.ff-shell { display: grid; grid-template-columns: 248px 1fr; height: 100%; }
 .ff-sidebar {
 	padding: 26px 18px; border-right: 1px solid var(--ff-border);
 	background: linear-gradient(180deg, var(--ff-surface), transparent);
 	backdrop-filter: blur(8px);
-	position: sticky; top: 32px; align-self: start; max-height: calc(100vh - 32px); overflow-y: auto;
+	height: 100%; overflow-y: auto;
 }
 .ff-brand { display: flex; align-items: center; gap: 11px; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; margin-bottom: 4px; }
 .ff-brand svg { flex: none; filter: drop-shadow(0 4px 14px rgba(51, 238, 51, 0.30)); }
@@ -93,7 +97,7 @@
 .ff-modeswitch button.is-active { background: linear-gradient(135deg, var(--ff-primary), var(--ff-primary-2)); color: #0c2a0c; }
 
 /* ----- Contenido ----- */
-.ff-main { padding: 28px 34px 60px; }
+.ff-main { padding: 28px 34px 60px; height: 100%; overflow-y: auto; }
 .ff-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
 .ff-topbar h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.4px; }
 .ff-topbar p { margin: 4px 0 0; color: var(--ff-text-dim); font-size: 13px; }
@@ -105,7 +109,7 @@
 	font-size: 13px; border: 1px solid var(--ff-border); background: var(--ff-surface-2); color: var(--ff-text);
 	cursor: pointer; transition: all .16s ease; text-decoration: none;
 }
-.ff-btn:hover { transform: translateY(-1px); background: var(--ff-surface); }
+.ff-btn:hover { transform: translateY(-1px); filter: brightness(1.12); }
 .ff-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .ff-btn--primary { background: linear-gradient(135deg, var(--ff-primary), var(--ff-primary-2)); border-color: transparent; color: #0c2a0c; box-shadow: var(--ff-glow); }
 .ff-btn--ghost { background: transparent; }
@@ -250,18 +254,17 @@
 
 @media (max-width: 1200px) { .ff-grid--stats { grid-template-columns: repeat(2, 1fr); } .ff-grid--2 { grid-template-columns: 1fr; } }
 @media (max-width: 960px) {
-	.ff-shell { grid-template-columns: 1fr; min-height: 0; }
-	.ff-sidebar { border-right: 0; border-bottom: 1px solid var(--ff-border); position: static; max-height: none; overflow: visible; }
+	.fasterfy-app { height: auto; min-height: calc(100vh - 46px); overflow: visible; }
+	.ff-shell { grid-template-columns: 1fr; height: auto; }
+	.ff-sidebar { border-right: 0; border-bottom: 1px solid var(--ff-border); height: auto; overflow: visible; }
+	.ff-main { height: auto; overflow: visible; }
 	.ff-nav { flex-direction: row; flex-wrap: wrap; }
 	.ff-settings-grid { grid-template-columns: 1fr; }
 	.ff-metrics { grid-template-columns: 1fr; }
 	.ff-themebtn { top: 8px; right: 12px; width: 36px; height: 36px; }
 }
 
-/* Barra de administración de WordPress mide 46px en pantallas pequeñas. */
-@media (max-width: 782px) {
-	.fasterfy-app { min-height: calc(100vh - 46px); }
-}
+/* La barra de WordPress mide 46px en pantallas pequeñas (modo scroll de página). */
 
 
 /* ----- Vista en cuadrícula de la biblioteca ----- */
