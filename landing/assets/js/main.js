@@ -327,26 +327,83 @@
 	}
 
 	/* ------------------------ Reveal on scroll ------------------- */
-	function initReveal() {
-		var targets = document.querySelectorAll('.section, .roi, .strip, .cta-final');
-		targets.forEach(function (el) { el.classList.add('reveal'); });
+	var REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-		var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		if (reduce || !('IntersectionObserver' in window)) {
-			targets.forEach(function (el) { el.classList.add('is-visible'); });
+	function observe(els, onShow, opts) {
+		if (!els.length) { return; }
+		if (!('IntersectionObserver' in window)) {
+			els.forEach(onShow);
 			return;
 		}
+		var io = new IntersectionObserver(function (entries) {
+			entries.forEach(function (entry) {
+				if (entry.isIntersecting) {
+					onShow(entry.target);
+					io.unobserve(entry.target);
+				}
+			});
+		}, opts || { threshold: 0.16, rootMargin: '0px 0px -8% 0px' });
+		els.forEach(function (el) { io.observe(el); });
+	}
+
+	function initReveal() {
+		if (REDUCE) { return; }
+
+		// Soft reveal-up for headers and the final CTA.
+		var reveals = document.querySelectorAll('.section__head, .cta-final__inner, .strip__inner');
+		reveals.forEach(function (el) { el.classList.add('reveal-init'); });
+		observe(reveals, function (el) { el.classList.add('is-visible'); });
+
+		// Staggered reveal for card grids.
+		var grids = document.querySelectorAll('.cards, .steps, .plans, .roi__grid');
+		grids.forEach(function (el) { el.classList.add('stagger-init'); });
+		observe(grids, function (el) { el.classList.add('is-visible'); });
+
+		// Animate the hero progress bar when it enters the viewport.
+		var bars = document.querySelectorAll('.bar');
+		observe(bars, function (el) { el.classList.add('is-filled'); }, { threshold: 0.4 });
+	}
+
+	/* --------------------- Active-section nav -------------------- */
+	function initScrollSpy() {
+		var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
+		if (!links.length || !('IntersectionObserver' in window)) { return; }
+
+		var map = {};
+		links.forEach(function (a) {
+			var id = a.getAttribute('href').slice(1);
+			var sec = document.getElementById(id);
+			if (sec) { map[id] = a; }
+		});
 
 		var io = new IntersectionObserver(function (entries) {
 			entries.forEach(function (entry) {
 				if (entry.isIntersecting) {
-					entry.target.classList.add('is-visible');
-					io.unobserve(entry.target);
+					links.forEach(function (a) { a.classList.remove('is-active'); });
+					var active = map[entry.target.id];
+					if (active) { active.classList.add('is-active'); }
 				}
 			});
-		}, { threshold: 0.12 });
+		}, { rootMargin: '-45% 0px -50% 0px' });
 
-		targets.forEach(function (el) { io.observe(el); });
+		Object.keys(map).forEach(function (id) {
+			io.observe(document.getElementById(id));
+		});
+	}
+
+	/* ----------------------- Header on scroll -------------------- */
+	function initHeader() {
+		var header = document.querySelector('.site-header');
+		if (!header) { return; }
+		var ticking = false;
+		function update() {
+			header.classList.toggle('is-scrolled', window.scrollY > 12);
+			ticking = false;
+		}
+		window.addEventListener('scroll', function () {
+			if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
+		}, { passive: true });
+		update();
 	}
 
 	/* -------------------------- Count up ------------------------- */
@@ -486,6 +543,8 @@
 		initLanguage();
 		initBilling();
 		initReveal();
+		initScrollSpy();
+		initHeader();
 		initCounters();
 		initForm();
 	}

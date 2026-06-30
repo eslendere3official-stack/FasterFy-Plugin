@@ -18,7 +18,7 @@ $csrf = csrf_token();
 // Stamp the moment the form was served (used by the time-trap on submit).
 $_SESSION[ FORM_RENDERED_KEY ] = time();
 
-$asset_v = '1.0.0'; // Bump to bust cache on deploy.
+$asset_v = '1.2.0'; // Bump to bust cache on deploy.
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -50,6 +50,12 @@ $asset_v = '1.0.0'; // Bump to bust cache on deploy.
 
 	<!-- Preload critical assets for a fast LCP -->
 	<link rel="preload" as="image" href="assets/img/fasterfy-mark.svg">
+
+	<!-- Fonts: Space Grotesk (display) + Inter (body) -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+
 	<link rel="stylesheet" href="assets/css/styles.css?v=<?php echo rawurlencode( $asset_v ); ?>">
 
 	<!-- Structured data -->
