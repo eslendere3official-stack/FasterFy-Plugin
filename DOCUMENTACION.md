@@ -33,6 +33,7 @@ Empieza aquí en orden:
 | **[docs/DIAGNOSTICO-IA.md](docs/DIAGNOSTICO-IA.md)** | Guía exhaustiva de troubleshooting de IA | Si el problema persiste después de diagnóstico rápido |
 | **[CONTEXT.md](CONTEXT.md)** | Arquitectura, decisiones, negocio, backlog | Antes de implementar cambios |
 | **[docs/PROGRESS.md](docs/PROGRESS.md)** | Historial de versiones y estado funcional | Antes de planificar nuevas versiones |
+| **[docs/ESTRATEGIA-COMERCIAL.md](docs/ESTRATEGIA-COMERCIAL.md)** | Estrategia comercial completa: precios, competencia, go-to-market | Antes de tocar precios, licencias o lanzamiento |
 | **[readme.txt](readme.txt)** | Changelog técnico detallado | Para ver cambios específicos por versión |
 
 ### Documentos Técnicos
@@ -159,6 +160,7 @@ FasterFy-Plugin/
 - **Cifrado**: `includes/Settings.php` → API keys cifradas
 
 ### Negocio y Legal
+- **Estrategia comercial completa (precios, competencia, go-to-market)**: `docs/ESTRATEGIA-COMERCIAL.md`
 - **Modelo de negocio**: `CONTEXT.md` → Sección "Modelo de negocio"
 - **Roadmap comercial**: `docs/RESUMEN-EJECUTIVO.md` → Sección "Modelo de Negocio"
 - **Cumplimiento legal**: `legal/COMPLIANCE-CHECKLIST.md`

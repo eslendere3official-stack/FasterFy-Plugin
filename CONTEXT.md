@@ -92,6 +92,11 @@ Plugin nativo de WordPress (PHP 8+) para optimización de medios:
 
 
 ## Modelo de negocio y hoja de ruta comercial (IMPORTANTE)
+> 📄 **Estrategia comercial completa (precios, competencia, go-to-market)**:
+> ver **[docs/ESTRATEGIA-COMERCIAL.md](docs/ESTRATEGIA-COMERCIAL.md)**. Esta
+> sección es solo el resumen técnico/arquitectónico; el documento dedicado es
+> la fuente de verdad para precios y estrategia de negocio.
+
 Objetivo del dueño: vender FasterFy como **producto por suscripción (SaaS)**.
 - **Mercados objetivo**: LATAM y, sobre todo, **Estados Unidos**.
 - **Idioma**: debe ser **multilenguaje**, con **inglés como idioma base/por defecto** y
@@ -154,9 +159,10 @@ plataforma de cobros/licencias.
 El proyecto es portable; no depende de la memoria del chat. Para continuar:
 1. Asegura acceso al repo `EslenderE3/FasterFy-Plugin` (lectura para clonar; escritura para subir cambios).
 2. Conecta/clona el repositorio en la nueva sesión de Kiro.
-3. Pídele: "Lee CONTEXT.md, docs/PROGRESS.md y docs/RESILIENCE.md y continúa el proyecto FasterFy".
+3. Pídele: "Lee CONTEXT.md, docs/PROGRESS.md, docs/RESILIENCE.md y docs/ESTRATEGIA-COMERCIAL.md y continúa el proyecto FasterFy".
 Nota: una sesión/cuenta nueva NO recuerda conversaciones previas, pero estos documentos
-contienen arquitectura, decisiones, estado, backlog y dirección comercial para retomar sin pérdida.
+contienen arquitectura, decisiones, estado, backlog y dirección comercial (precios, competencia,
+go-to-market) para retomar sin pérdida.
 
 
 ## Trabajo en paralelo: carpeta `landing/`
