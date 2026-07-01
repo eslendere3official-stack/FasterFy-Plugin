@@ -181,7 +181,7 @@ FasterFy is being developed as a **SaaS subscription product** for the global ma
 - 🌍 **Multilingual**: English (base) + Spanish (secondary) with full i18n support
 - 🔐 **Licensing**: Platform TBD (Freemius recommended for WordPress ecosystem)
 
-See **[CONTEXT.md](CONTEXT.md#modelo-de-negocio-y-hoja-de-ruta-comercial-importante)** for complete commercial strategy.
+See **[docs/ESTRATEGIA-COMERCIAL.md](docs/ESTRATEGIA-COMERCIAL.md)** for the full commercial strategy (pricing, competitor analysis, go-to-market plan) and **[CONTEXT.md](CONTEXT.md#modelo-de-negocio-y-hoja-de-ruta-comercial-importante)** for the architectural summary.
 
 ---
 
