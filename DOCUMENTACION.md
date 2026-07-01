@@ -29,6 +29,8 @@ Empieza aquí en orden:
 |-----------|-----------|---------------|
 | **[DOCUMENTACION.md](DOCUMENTACION.md)** | Este índice maestro | Siempre al empezar |
 | **[docs/RESUMEN-EJECUTIVO.md](docs/RESUMEN-EJECUTIVO.md)** | Vista panorámica del proyecto completo | Primera lectura o después de pausa larga |
+| **[docs/COMO-DIAGNOSTICAR.md](docs/COMO-DIAGNOSTICAR.md)** | Guía rápida para diagnosticar problemas de IA (5 min) | Si la IA no genera texto |
+| **[docs/DIAGNOSTICO-IA.md](docs/DIAGNOSTICO-IA.md)** | Guía exhaustiva de troubleshooting de IA | Si el problema persiste después de diagnóstico rápido |
 | **[CONTEXT.md](CONTEXT.md)** | Arquitectura, decisiones, negocio, backlog | Antes de implementar cambios |
 | **[docs/PROGRESS.md](docs/PROGRESS.md)** | Historial de versiones y estado funcional | Antes de planificar nuevas versiones |
 | **[readme.txt](readme.txt)** | Changelog técnico detallado | Para ver cambios específicos por versión |
@@ -38,6 +40,8 @@ Empieza aquí en orden:
 | Documento | Propósito | Cuándo leerlo |
 |-----------|-----------|---------------|
 | **[docs/RESILIENCE.md](docs/RESILIENCE.md)** | Escenarios de fallo y prevención | Antes de endurecimiento técnico |
+| **[docs/DIAGNOSTICO-IA.md](docs/DIAGNOSTICO-IA.md)** | Guía completa de troubleshooting de IA | Cuando la IA no funciona |
+| **[docs/COMO-DIAGNOSTICAR.md](docs/COMO-DIAGNOSTICAR.md)** | Guía rápida de diagnóstico (5 min) | Primer paso si hay problemas con IA |
 | **[composer.json](composer.json)** | Configuración PSR-4 y dependencias | Al modificar estructura de archivos |
 
 ### Documentación Legal
