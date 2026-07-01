@@ -14,7 +14,7 @@ Plugin nativo de WordPress (PHP 8+) para optimización de medios:
 - Panel SPA propio (sin framework de build) con modos **Lite** y **Pro**.
 
 ## Versión actual
-**1.0.6** (ver `readme.txt` → Changelog para el historial completo).
+**1.0.17** (ver `readme.txt` → Changelog para el historial completo).
 
 ## Configuración de IA en uso (pruebas)
 - Proveedor: OpenAI-compatible apuntando a **Google Gemini** (capa gratuita).
@@ -38,12 +38,18 @@ Plugin nativo de WordPress (PHP 8+) para optimización de medios:
 ## Decisiones clave
 - **MIME visibles vs optimizables**: la galería del plugin muestra también WebP/AVIF
   (para aplicarles IA/rollback), pero solo optimiza JPEG/PNG/SVG.
+- **IA lee JPEG en lugar de AVIF**: los modelos de visión (OpenAI, Gemini) no soportan
+  AVIF; cuando se procesa IA sobre una imagen ya convertida, se envía una copia temporal JPEG.
+- **Compresión PNG real**: usa `PNG_ALL_FILTERS` (filtro 5) para compresión efectiva con canal alfa.
 - **Modos de cola**: `optimize` (solo comprimir), `ai` (solo textos, con reintentos
   hasta 3 por imagen) y `both` (procesa lo que necesite optimización O texto).
-- **Lotes vía navegador** (`/queue/run` → `run_batch`): fiable en cualquier hosting;
-  requiere mantener la pestaña abierta.
+- **Acciones masivas unificadas**: selección múltiple en galería permite optimizar/IA/revertir
+  en 1 clic; el navegador conduce los lotes (`/queue/run` → `run_batch`).
 - **Lite vs Pro**: Lite simplifica menú/acciones; Pro expone opciones avanzadas.
 - **No destructivo**: se respalda el original antes de optimizar; rollback con 1 clic.
+- **Identidad visual**: paleta #1F1F1F (negro) / #33EE33 (verde neón), logo FasterFy aplicado.
+- **Panel a pantalla completa** (100vh sin doble scroll) con vistas lista/cuadrícula/detalle.
+- **Dashboard de rendimiento**: KPIs, gráfico de donut animado, comparativa antes/después.
 
 ## Metadatos (postmeta) que usa el plugin
 - `_fasterfy_status` (optimized|error), `_fasterfy_saved_bytes`, `_fasterfy_format_to`
@@ -55,11 +61,29 @@ Plugin nativo de WordPress (PHP 8+) para optimización de medios:
 2. Abre el commit deseado → **Code → Download ZIP**, o pídeme volver a esa versión.
 
 ## Backlog / ideas pendientes (no implementadas)
+**Funciones de producto:**
 - [ ] "Revertir todo" global con confirmación.
 - [ ] Informe de ahorro descargable (CSV/PDF).
 - [ ] "Seleccionar todo (página)" en la galería.
 - [ ] Reset del contador de reintentos de IA desde la UI.
 - [ ] Integración real de PageSpeed/Core Web Vitals (hook `fasterfy_performance_metrics`).
+
+**Endurecimiento técnico** (detalle en `docs/RESILIENCE.md`):
+- [ ] Backoff exponencial ante 429 del proveedor de IA (respetar `Retry-After`).
+- [ ] Cachear conteos del escáner (transient) para bibliotecas grandes.
+- [ ] Guardas de memoria/dimensiones antes de procesar imágenes muy grandes.
+- [ ] Comprobación de espacio en disco + auto-purga de respaldos por antigüedad.
+- [ ] Refresco automático del nonce en lotes largos.
+- [ ] Detección de plugins de optimización en conflicto (Smush, ShortPixel, CDN).
+- [ ] Soporte/validación de Multisite.
+- [ ] Pruebas de carga (cuando exista la capa SaaS).
+
+**Comercialización (pre-lanzamiento) — PRIORITARIO:**
+- [ ] **Internacionalización (i18n)**: inglés como idioma base + español (`es_ES`) + generar `fasterfy.pot`.
+- [ ] Elegir plataforma de cobro (Freemius vs Lemon Squeezy/Paddle) → panel del dueño.
+- [ ] Integrar licencias + entrega de actualizaciones en el plugin.
+- [ ] Publicar Lite en WordPress.org; vender Pro.
+- [ ] Publicar Términos/Privacidad (revisados por abogado) + DPAs + cookies.
 
 ## Comprobaciones antes de subir cambios
 - `php -l` en los archivos PHP modificados.
