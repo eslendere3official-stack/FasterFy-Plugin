@@ -121,7 +121,7 @@
 		{ id: 'dashboard', label: 'Resumen', icon: 'dashboard', lite: true },
 		{ id: 'media', label: 'Biblioteca', icon: 'media', lite: true },
 		{ id: 'performance', label: 'Rendimiento', icon: 'perf', lite: true },
-		{ id: 'ai', label: 'IA & SEO', icon: 'ai', lite: true },
+		{ id: 'ai', label: 'SEO & Textos', icon: 'ai', lite: true },
 		{ id: 'settings', label: 'Ajustes', icon: 'settings', lite: true },
 		{ id: 'logs', label: 'Registros', icon: 'logs', lite: false }
 	];
@@ -211,7 +211,7 @@
 	/* Banner/hero con slider de beneficios. */
 	var HERO_SLIDES = [
 		{ icon: '⚡', title: 'Hasta 80% más livianas', text: 'Convierte a WebP/AVIF y comprime automáticamente, sin perder calidad visible.' },
-		{ icon: '🧠', title: 'SEO con Inteligencia Artificial', text: 'Genera alt text, títulos y descripciones para posicionar mejor tus imágenes.' },
+		{ icon: '🧠', title: 'Textos SEO automáticos', text: 'Genera alt text, títulos y descripciones para posicionar mejor tus imágenes.' },
 		{ icon: '📦', title: 'Procesamiento masivo', text: 'Optimiza toda tu biblioteca por lotes, en segundo plano, sin bloquear tu sitio.' },
 		{ icon: '↩', title: 'No destructivo', text: 'Guardamos el original: revierte cualquier imagen a su versión inicial con un clic.' }
 	];
@@ -319,7 +319,12 @@
 			controls = '<button class="ff-btn ff-btn--sm ff-btn--primary" data-action="start-queue" data-mode="' + ( State.settings.ai && State.settings.ai.enabled ? 'both' : 'optimize' ) + '">⚡ Iniciar</button>';
 		}
 
-		return '<div class="ff-progress"><span style="width:' + p + '%"></span></div>' +
+		var throttle = ( running && ( q.retry_after || 0 ) > 0 )
+			? '<div class="ff-throttle">⏳ Ritmo ajustado al límite del proveedor de IA — reanudando en <b id="ff-throttle">' + q.retry_after + 's</b>… <span class="ff-muted">El proceso continúa solo.</span></div>'
+			: '';
+
+		return '<div class="ff-progress' + ( running ? ' is-active' : '' ) + '"><span style="width:' + p + '%"></span></div>' +
+			throttle +
 			'<div class="ff-queue-meta">' +
 				'<div><b>' + done + ' / ' + total + '</b>Procesados</div>' +
 				'<div><b>' + ( q.succeeded || 0 ) + '</b>Con éxito</div>' +
@@ -362,8 +367,8 @@
 			'<div class="ff-toolbar" style="justify-content:space-between;flex-wrap:wrap;gap:10px">' +
 				'<div class="ff-tabs" data-action="media-tab" style="flex-wrap:wrap">' +
 					tabBtn( 'all', 'Todos' ) + tabBtn( 'pending', 'Sin optimizar' ) + tabBtn( 'optimized', 'Optimizados' ) +
-					( State.settings.ai && State.settings.ai.enabled
-						? ( tabBtn( 'ai_done', 'IA aplicada' ) + tabBtn( 'ai_pending', 'IA pendiente' ) + tabBtn( 'ai_error', 'IA con error' ) )
+					( ( State.settings.ai && State.settings.ai.enabled )
+						? ( tabBtn( 'ai_done', 'Con texto SEO' ) + tabBtn( 'ai_pending', 'Sin texto' ) + ( isPro() ? tabBtn( 'ai_error', 'Texto con error' ) : '' ) )
 						: '' ) +
 				'</div>' +
 				'<div class="ff-tabs" data-action="media-view">' +
@@ -389,18 +394,31 @@
 	 */
 	function bulkActionsCard() {
 		var aiOn = State.settings.ai && State.settings.ai.enabled;
-		var btns = '<button class="ff-btn ff-btn--primary" data-action="start-queue" data-mode="optimize">⚡ Optimizar todo</button>';
-		if ( aiOn ) {
-			btns += '<button class="ff-btn ff-btn--accent" data-action="start-queue" data-mode="ai">🧠 Generar IA en todo</button>';
-			btns += '<button class="ff-btn ff-btn--ghost" data-action="ai-reset-failed" title="Reintentar las imágenes cuyo texto de IA falló">🔁 Reintentar IA fallidas</button>';
+		var pro = isPro();
+		var btns, hint;
+
+		if ( ! pro ) {
+			// Lite: una sola acción "todo en uno" (optimiza y, si la IA está
+			// activa, también genera textos) + revertir. Máxima simplicidad.
+			btns = '<button class="ff-btn ff-btn--primary ff-btn--lg" data-action="start-queue" data-mode="' + ( aiOn ? 'both' : 'optimize' ) + '">✨ Optimizar todo' + ( aiOn ? ' + textos' : '' ) + '</button>';
+			btns += '<button class="ff-btn ff-btn--danger" data-action="start-queue" data-mode="rollback">↩ Revertir todo</button>';
+			hint = 'Modo simple: un clic optimiza toda tu biblioteca' + ( aiOn ? ' y genera los textos SEO' : '' ) + '. Cambia a <b>Pro</b> para acciones separadas y control por estado.';
+		} else {
+			// Pro: acciones granulares + gestión de reintentos.
+			btns = '<button class="ff-btn ff-btn--primary" data-action="start-queue" data-mode="optimize">⚡ Optimizar todo</button>';
+			if ( aiOn ) {
+				btns += '<button class="ff-btn ff-btn--accent" data-action="start-queue" data-mode="ai">🧠 Generar textos en todo</button>';
+				btns += '<button class="ff-btn ff-btn--ghost" data-action="ai-reset-failed" title="Reintentar las imágenes cuyo texto SEO falló">🔁 Reintentar fallidas</button>';
+			}
+			btns += '<button class="ff-btn ff-btn--danger" data-action="start-queue" data-mode="rollback">↩ Revertir todo</button>';
+			hint = 'Modo Pro: control total. Aplica cada acción por separado a toda la biblioteca, por lotes.';
 		}
-		btns += '<button class="ff-btn ff-btn--danger" data-action="start-queue" data-mode="rollback">↩ Revertir todo</button>';
 
 		return '<div class="ff-card ff-card--pad-lg" style="margin-bottom:18px">' +
-			'<h3>Acciones masivas</h3>' +
-			'<p class="ff-muted" style="margin:-6px 0 16px;font-size:13px">Aplica una acción a toda la biblioteca, por lotes. Mantén esta pestaña abierta mientras avanza la barra de progreso.</p>' +
+			'<div class="ff-row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Acciones masivas</h3><span class="ff-modebadge ff-modebadge--' + ( pro ? 'pro' : 'lite' ) + '">' + ( pro ? 'PRO' : 'LITE' ) + '</span></div>' +
+			'<p class="ff-muted" style="margin:6px 0 16px;font-size:13px">' + hint + '</p>' +
 			'<div class="ff-row" id="ff-bulk-buttons" style="gap:10px;flex-wrap:wrap">' + btns + '</div>' +
-			( aiOn ? '' : '<p class="ff-muted ff-mt" style="font-size:12px">💡 Activa la IA en la pestaña <b>IA & SEO</b> para generar textos.</p>' ) +
+			( aiOn ? '' : '<p class="ff-muted ff-mt" style="font-size:12px">💡 Activa la generación de textos en la pestaña <b>SEO & Textos</b>.</p>' ) +
 			'<div id="ff-media-queue" class="ff-mt"></div>' +
 		'</div>';
 	}
@@ -421,8 +439,8 @@
 
 	/** Etiqueta legible del modo de cola. */
 	function queueModeLabel( mode ) {
-		if ( 'ai' === mode ) { return '(textos IA)'; }
-		if ( 'both' === mode ) { return '(optimización + IA)'; }
+		if ( 'ai' === mode ) { return '(textos SEO)'; }
+		if ( 'both' === mode ) { return '(optimización + textos)'; }
 		return '(optimización)';
 	}
 
@@ -469,7 +487,7 @@
 		var right = '';
 		if ( n ) {
 			right = '<button class="ff-btn ff-btn--sm ff-btn--primary" data-action="sel-optimize">⚡ Optimizar</button>';
-			if ( aiOn ) { right += '<button class="ff-btn ff-btn--sm ff-btn--accent" data-action="sel-ai">🧠 Generar IA</button>'; }
+			if ( aiOn ) { right += '<button class="ff-btn ff-btn--sm ff-btn--accent" data-action="sel-ai">🧠 Generar texto SEO</button>'; }
 			right += '<button class="ff-btn ff-btn--sm ff-btn--danger" data-action="sel-rollback">↩ Revertir</button>';
 			right += '<button class="ff-btn ff-btn--sm ff-btn--ghost" data-action="sel-clear">Limpiar</button>';
 		}
@@ -482,7 +500,7 @@
 		var a = '<button class="ff-btn ff-btn--sm ff-btn--ghost" data-action="detail" data-id="' + it.id + '">Detalles</button>';
 		a += '<button class="ff-btn ff-btn--sm" data-action="optimize-one" data-id="' + it.id + '">Optimizar</button>';
 		if ( State.settings.ai && State.settings.ai.enabled ) {
-			a += '<button class="ff-btn ff-btn--sm" data-action="ai-one" data-id="' + it.id + '">IA</button>';
+			a += '<button class="ff-btn ff-btn--sm" data-action="ai-one" data-id="' + it.id + '">Texto SEO</button>';
 		}
 		if ( it.has_backup ) {
 			a += '<button class="ff-btn ff-btn--sm ff-btn--danger" data-action="rollback-one" data-id="' + it.id + '">Revertir</button>';
@@ -494,10 +512,33 @@
 	 * Vista de detalle (ficha completa de una imagen)
 	 * ============================================================ */
 	function openDetail( id ) {
+		State.detailId = id;
 		showDetailOverlay( '<div class="ff-empty"><span class="ff-spinner"></span> Cargando ficha…</div>' );
 		Api.get( '/media/detail?id=' + id ).then( function ( res ) {
 			renderDetailModal( res.detail );
 		} ).catch( function ( e ) { toast( e.message, 'error' ); closeDetail(); } );
+	}
+
+	/** Índice del elemento actualmente abierto dentro de la página cargada. */
+	function detailIndex() {
+		var items = State.media.items || [];
+		for ( var i = 0; i < items.length; i++ ) {
+			if ( items[ i ].id === State.detailId ) { return i; }
+		}
+		return -1;
+	}
+
+	/** Navega a la imagen anterior/siguiente (dir = -1 | +1) dentro de la galería. */
+	function detailNav( dir ) {
+		var items = State.media.items || [];
+		var idx = detailIndex();
+		if ( idx < 0 ) { return; }
+		var ni = idx + dir;
+		if ( ni < 0 || ni >= items.length ) {
+			toast( dir < 0 ? 'Primera imagen de la página.' : 'Última imagen de la página.', 'info' );
+			return;
+		}
+		openDetail( items[ ni ].id );
 	}
 
 	function showDetailOverlay( inner ) {
@@ -514,6 +555,7 @@
 	function closeDetail() {
 		var ov = document.getElementById( 'ff-detail' );
 		if ( ov ) { ov.remove(); }
+		State.detailId = null;
 	}
 
 	function detailRow( label, value ) {
@@ -546,12 +588,20 @@
 		}
 
 		var actions = '<button class="ff-btn ff-btn--sm" data-action="optimize-one" data-id="' + d.id + '">⚡ Optimizar</button>';
-		if ( State.settings.ai && State.settings.ai.enabled ) { actions += '<button class="ff-btn ff-btn--sm ff-btn--accent" data-action="ai-one" data-id="' + d.id + '">🧠 Generar IA</button>'; }
+		if ( State.settings.ai && State.settings.ai.enabled ) { actions += '<button class="ff-btn ff-btn--sm ff-btn--accent" data-action="ai-one" data-id="' + d.id + '">🧠 Generar texto SEO</button>'; }
 		if ( d.has_backup ) { actions += '<button class="ff-btn ff-btn--sm ff-btn--danger" data-action="rollback-one" data-id="' + d.id + '">↩ Revertir</button>'; }
 		if ( d.edit_link ) { actions += '<a class="ff-btn ff-btn--sm ff-btn--ghost" href="' + d.edit_link + '" target="_blank" rel="noopener">Abrir en WP ↗</a>'; }
 
+		var idx = detailIndex();
+		var hasPrev = idx > 0;
+		var hasNext = idx >= 0 && idx < ( State.media.items.length - 1 );
+		var navBtns =
+			'<button class="ff-modal__nav ff-modal__nav--prev" data-action="detail-prev" title="Anterior (←)"' + ( hasPrev ? '' : ' disabled' ) + '>‹</button>' +
+			'<button class="ff-modal__nav ff-modal__nav--next" data-action="detail-next" title="Siguiente (→)"' + ( hasNext ? '' : ' disabled' ) + '>›</button>';
+
 		var html =
-			'<button class="ff-modal__close" data-action="detail-close" title="Cerrar">✕</button>' +
+			'<button class="ff-modal__close" data-action="detail-close" title="Cerrar (Esc)">✕</button>' +
+			navBtns +
 			'<div class="ff-detail">' +
 				'<div class="ff-detail__media"><img src="' + ( d.preview || d.url || '' ) + '" alt=""><div class="ff-detail__file">' + h( d.filename ) + ' · #' + d.id + '</div></div>' +
 				'<div class="ff-detail__info">' +
@@ -570,8 +620,8 @@
 
 	/** Etiqueta del estado de IA. */
 	function aiBadge( it ) {
-		if ( 'error' === it.ai_status ) { return '<span class="ff-badge ff-badge--error">IA ✕</span>'; }
-		if ( 'done' === it.ai_status ) { return '<span class="ff-badge ff-badge--optimized">IA ✓</span>'; }
+		if ( 'error' === it.ai_status ) { return '<span class="ff-badge ff-badge--error">SEO ✕</span>'; }
+		if ( 'done' === it.ai_status ) { return '<span class="ff-badge ff-badge--optimized">SEO ✓</span>'; }
 		if ( 'blocked' === it.ai_status ) { return '<span class="ff-badge ff-badge--blocked">bloqueado</span>'; }
 		return '';
 	}
@@ -630,7 +680,7 @@
 
 		el.innerHTML = bar +
 			'<table class="ff-table"><thead><tr>' +
-				'<th style="width:32px"></th><th></th><th>ID</th><th>Estado</th><th>Ahorro</th><th>Alt text (IA)</th><th></th>' +
+				'<th style="width:32px"></th><th></th><th>ID</th><th>Estado</th><th>Ahorro</th><th>Texto alternativo (SEO)</th><th></th>' +
 			'</tr></thead><tbody>' + rows + '</tbody></table>' + pager;
 	}
 
@@ -749,13 +799,13 @@
 		var ai = State.settings.ai || {};
 		var mod = State.settings.moderation || {};
 		var pro = isPro();
-		view.innerHTML = topbar( 'IA & SEO', 'Reconocimiento de imagen, generación de Alt Text y moderación.',
+		view.innerHTML = topbar( 'SEO & Textos', 'Generación automática de texto alternativo, títulos y descripciones a partir de la imagen.',
 			'<button class="ff-btn" data-action="ai-test">🔌 Probar conexión</button>' ) +
 			'<div class="ff-card ff-card--pad-lg ff-mt">' +
 				'<div class="ff-ai-note">🔎 FasterFy envía la imagen al proveedor de IA que configures para generar el texto. Los resultados pueden contener errores y conviene revisarlos; no sustituyen el criterio humano. No se usan tus imágenes para entrenar modelos. Recuerda declarar tu proveedor de IA en tu política de privacidad.</div>' +
 				'<div class="ff-settings-grid">' +
 					'<div class="ff-section-title">Modelo multimodal</div>' +
-					toggleField( 'ai.enabled', 'Activar IA', ai.enabled, 'Habilita el análisis de visión y la generación de metadatos.' ) +
+					toggleField( 'ai.enabled', 'Activar generación de textos', ai.enabled, 'Analiza la imagen y genera texto alternativo, títulos y descripciones automáticamente.' ) +
 					field( 'ai.provider', 'Proveedor', selectInput( 'ai.provider', ai.provider, [ [ 'openai', 'OpenAI-compatible' ], [ 'fasterfy_cloud', 'FasterFy Cloud' ] ] ) ) +
 					field( 'ai.api_base', 'Endpoint base', textInput( 'ai.api_base', ai.api_base ) ) +
 					field( 'ai.api_key', 'API Key' + ( ai.has_api_key ? ' (configurada ✓)' : '' ), passwordInput( 'ai.api_key', '', ai.has_api_key ? '•••••••• (deja vacío para conservar)' : 'sk-…' ) ) +
@@ -801,8 +851,8 @@
 					field( 'conversion.target_format', 'Formato objetivo (JPG/PNG)', selectInput( 'conversion.target_format', c.target_format, [ [ 'webp', 'WebP' ], [ 'avif', 'AVIF' ], [ 'auto', 'Automático (mejor disponible)' ] ] ) ) +
 					field( 'conversion.png_strategy', 'Estrategia PNG', selectInput( 'conversion.png_strategy', c.png_strategy, [ [ 'lossy', 'Con pérdida (cuantización)' ], [ 'lossless', 'Sin pérdida' ] ] ) ) +
 					toggleField( 'conversion.png_to_webp', 'Convertir PNG a WebP/AVIF si ahorra más', c.png_to_webp, 'Recomendado: usa el "Formato objetivo" elegido (WebP o AVIF, ambos conservan transparencia). Si no ahorra, intenta comprimir el PNG.' ) +
-					rangeField( 'conversion.webp_quality', 'Calidad WebP', c.webp_quality, 1, 100, 1 ) +
-					rangeField( 'conversion.avif_quality', 'Calidad AVIF', c.avif_quality, 1, 100, 1 ) +
+					rangeField( 'conversion.webp_quality', 'Calidad WebP', c.webp_quality, 1, 100, 1, 'Menor valor = archivos más ligeros. 75–82 es un buen equilibrio.' ) +
+					rangeField( 'conversion.avif_quality', 'Calidad AVIF', c.avif_quality, 1, 100, 1, 'Menor valor = archivos mucho más ligeros. Para máximo ahorro prueba 50–60; AVIF mantiene gran calidad.' ) +
 					( pro ? rangeField( 'conversion.png_max_colors', 'Colores PNG (lossy)', c.png_max_colors, 2, 256, 2 ) : '' ) +
 					( pro ? field( 'conversion.max_width', 'Ancho máximo (px, 0=off)', numberInput( 'conversion.max_width', c.max_width ) ) : '' ) +
 					toggleField( 'conversion.sanitize_svg', 'Sanitizar SVG', c.sanitize_svg, 'Elimina scripts y metadatos de diseño.' ) +
@@ -891,9 +941,10 @@
 		} ).join( '' );
 		return '<select class="ff-select" data-setting="' + key + '">' + opts + '</select>';
 	}
-	function rangeField( key, label, val, min, max, step ) {
+	function rangeField( key, label, val, min, max, step, hint ) {
 		return '<div class="ff-field"><label>' + h( label ) + ' <b data-rangeval="' + key + '" style="color:var(--ff-primary-2)">' + ( val != null ? val : '' ) + '</b></label>' +
-			'<input type="range" class="ff-range" data-setting="' + key + '" data-type="number" min="' + min + '" max="' + max + '" step="' + step + '" value="' + ( val != null ? val : min ) + '"></div>';
+			'<input type="range" class="ff-range" data-setting="' + key + '" data-type="number" min="' + min + '" max="' + max + '" step="' + step + '" value="' + ( val != null ? val : min ) + '">' +
+			( hint ? '<div class="ff-hint">' + h( hint ) + '</div>' : '' ) + '</div>';
 	}
 	function toggleField( key, label, checked, hint ) {
 		return '<div class="ff-field"><label class="ff-toggle">' +
@@ -987,6 +1038,22 @@
 	}
 	function stopDriving() {
 		State.driving = false;
+		stopThrottleCountdown();
+	}
+
+	/* Cuenta regresiva visible mientras se espera por el rate-limit del proveedor. */
+	function startThrottleCountdown( seconds ) {
+		stopThrottleCountdown();
+		State.throttleLeft = seconds;
+		State.throttleTimer = setInterval( function () {
+			State.throttleLeft = Math.max( 0, ( State.throttleLeft || 0 ) - 1 );
+			var el = document.getElementById( 'ff-throttle' );
+			if ( el ) { el.textContent = State.throttleLeft + 's'; }
+			if ( State.throttleLeft <= 0 ) { stopThrottleCountdown(); }
+		}, 1000 );
+	}
+	function stopThrottleCountdown() {
+		if ( State.throttleTimer ) { clearInterval( State.throttleTimer ); State.throttleTimer = null; }
 	}
 	function driveTick() {
 		if ( ! State.driving ) { return; }
@@ -1000,13 +1067,16 @@
 				// tiempo antes del próximo lote. La cola se auto-regula y termina sola.
 				var retry = parseInt( res.queue.retry_after, 10 ) || 0;
 				if ( retry > 0 ) {
+					var wait = Math.min( 60, retry );
 					if ( ! State.throttleNotified ) {
 						State.throttleNotified = true;
 						toast( 'Ritmo ajustado al límite del proveedor de IA. El proceso continúa solo…', 'info' );
 					}
-					setTimeout( driveTick, Math.min( 60, retry ) * 1000 );
+					startThrottleCountdown( wait );
+					setTimeout( driveTick, wait * 1000 );
 				} else {
 					State.throttleNotified = false;
+					stopThrottleCountdown();
 					setTimeout( driveTick, 500 );
 				}
 			} else {
@@ -1040,9 +1110,9 @@
 		var total = ids.length;
 		var ok = 0;
 		var failed = 0;
-		toast( 'Procesando ' + total + ' imagen(es)…', 'info' );
 		function next() {
 			if ( ! ids.length ) {
+				seqProgress( total, total, doneLabel ); // cierra el indicador.
 				var msg = doneLabel + ': ' + ok + '/' + total + ' ✓';
 				if ( failed ) { msg += ' · ' + failed + ' pendiente(s), usa "Reintentar" si hace falta'; }
 				toast( msg, failed ? 'info' : 'success' );
@@ -1050,6 +1120,7 @@
 				loadMedia();
 				return;
 			}
+			seqProgress( ok + failed, total, doneLabel );
 			var id = ids.shift();
 			makeReq( id )
 				.then( function () { ok++; } )
@@ -1057,6 +1128,25 @@
 				.then( function () { delay > 0 ? setTimeout( next, delay ) : next(); } );
 		}
 		next();
+	}
+
+	/**
+	 * Indicador flotante de progreso para acciones por selección. Muestra
+	 * "n / total" con barra, de forma persistente hasta terminar.
+	 */
+	function seqProgress( done, total, label ) {
+		var el = document.getElementById( 'ff-seqprog' );
+		if ( done >= total ) { if ( el ) { el.remove(); } return; }
+		if ( ! el ) {
+			el = document.createElement( 'div' );
+			el.id = 'ff-seqprog';
+			el.className = 'ff-seqprog';
+			document.body.appendChild( el );
+		}
+		var p = total > 0 ? Math.round( ( done / total ) * 100 ) : 0;
+		el.innerHTML =
+			'<div class="ff-seqprog__head"><span class="ff-spinner"></span> ' + h( label || 'Procesando' ) + ' · <b>' + done + ' / ' + total + '</b></div>' +
+			'<div class="ff-seqprog__bar"><span style="width:' + p + '%"></span></div>';
 	}
 
 	function onClick( e ) {
@@ -1123,7 +1213,7 @@
 				itemAction( actionEl, '/optimize', { id: +actionEl.getAttribute( 'data-id' ), mode: 'optimize' }, 'Optimizado' );
 				break;
 			case 'ai-one':
-				itemAction( actionEl, '/ai/item', { id: +actionEl.getAttribute( 'data-id' ) }, 'IA aplicada' );
+				itemAction( actionEl, '/ai/item', { id: +actionEl.getAttribute( 'data-id' ) }, 'Texto SEO generado' );
 				break;
 			case 'rollback-one':
 				itemAction( actionEl, '/rollback', { id: +actionEl.getAttribute( 'data-id' ) }, 'Revertido al original' );
@@ -1147,6 +1237,12 @@
 				break;
 			case 'detail-close':
 				closeDetail();
+				break;
+			case 'detail-prev':
+				detailNav( -1 );
+				break;
+			case 'detail-next':
+				detailNav( 1 );
 				break;
 			case 'hero-dot':
 				heroGo( parseInt( actionEl.getAttribute( 'data-i' ), 10 ) );
@@ -1205,9 +1301,19 @@
 		var original = btn.innerHTML;
 		btn.innerHTML = '<span class="ff-spinner"></span>';
 		btn.disabled = true;
+		var id = body && body.id;
+		var detailOpen = !! document.getElementById( 'ff-detail' );
 		Api.post( path, body ).then( function () {
 			toast( okMsg, 'success' );
-			loadMedia();
+			if ( 'media' === State.route ) { loadMedia(); }
+			// Si la ficha de detalle está abierta, la recargamos para mostrar los
+			// textos/estado nuevos y, de paso, liberar el botón (se re-renderiza).
+			if ( detailOpen && id ) {
+				openDetail( id );
+			} else {
+				btn.innerHTML = original;
+				btn.disabled = false;
+			}
 		} ).catch( function ( e ) {
 			btn.innerHTML = original; btn.disabled = false;
 			toast( e.message, 'error' );
@@ -1239,11 +1345,20 @@
 	/* ============================================================
 	 * Init
 	 * ============================================================ */
+	/** Atajos de teclado: flechas para navegar la ficha, Esc para cerrar. */
+	function onKeydown( e ) {
+		if ( ! document.getElementById( 'ff-detail' ) ) { return; }
+		if ( 'ArrowLeft' === e.key ) { e.preventDefault(); detailNav( -1 ); }
+		else if ( 'ArrowRight' === e.key ) { e.preventDefault(); detailNav( 1 ); }
+		else if ( 'Escape' === e.key ) { closeDetail(); }
+	}
+
 	function init() {
 		var app = document.getElementById( 'fasterfy-app' );
 		if ( ! app ) { return; }
 		app.addEventListener( 'click', onClick );
 		app.addEventListener( 'input', onInput );
+		document.addEventListener( 'keydown', onKeydown );
 		renderShell();
 		// Si hay una cola en marcha al cargar, arranca el polling.
 		loadSummary().then( function ( res ) {

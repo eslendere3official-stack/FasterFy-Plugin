@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.19
+Stable tag: 1.0.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,15 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.20 =
+* UX: la vista de detalle ahora se navega con las flechas ← → del teclado (y botones ‹ › en pantalla); Esc para cerrar.
+* UX (visibilidad del estado): la barra de progreso tiene animación mientras procesa, y cuando el proveedor aplica rate-limit se muestra una cuenta regresiva "reanudando en Ns…" para que quede claro que el sistema sigue trabajando.
+* UX: indicador flotante de progreso ("n / total") al aplicar acciones sobre una selección de imágenes.
+* Fix: en la ficha de detalle, el botón de generar texto ya no se queda "cargando" indefinidamente; al terminar refresca la ficha con los textos nuevos.
+* Modo Lite/Pro ahora es claramente distinto: Lite ofrece una única acción "todo en uno"; Pro muestra acciones separadas, filtros por estado avanzados y reintento de fallidas. Insignia visible del modo activo.
+* Marca/UX: se reduce el uso del término "IA" en la interfaz a favor de "SEO / Textos" (la funcionalidad es la misma). Se mantienen las menciones técnicas/legales necesarias (aviso de privacidad).
+* Ajustes: los controles de calidad WebP/AVIF ahora explican que un valor menor produce archivos más ligeros (para máximo ahorro con AVIF, 50–60).
 
 = 1.0.19 =
 * IA (fiabilidad): los límites de peticiones del proveedor (HTTP 429, típicos en planes gratuitos como Gemini) ya NO se tratan como error permanente. Antes, tras 3 topes de rate-limit una imagen quedaba excluida para siempre y el lote "se detenía"; ahora esos errores son transitorios, no gastan reintentos y la imagen se reprocesa automáticamente.
