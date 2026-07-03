@@ -115,6 +115,8 @@ final class MediaScanner {
 			'optimized'       => $optimized,
 			'pending'         => $this->count_pending(),
 			'ai_pending'      => $this->count_ai_pending(),
+			'ai_done'         => $this->count_ai_status( 'done' ),
+			'ai_error'        => $this->count_ai_status( 'error' ),
 			'by_type'         => $by_type,
 			'total_saved'     => (int) ( $stats['total_saved'] ?? 0 ),
 			'total_optimized' => (int) ( $stats['total_optimized'] ?? 0 ),
@@ -236,6 +238,51 @@ final class MediaScanner {
 		);
 
 		return (int) $wpdb->get_var( $sql ); // phpcs:ignore
+	}
+
+	/**
+	 * Cuenta adjuntos por estado de IA ('done', 'error', 'blocked').
+	 *
+	 * @param string $ai_status Estado de IA.
+	 * @return int
+	 */
+	public function count_ai_status( string $ai_status ): int {
+		global $wpdb;
+		$display_in = $this->display_in_clause();
+		$sql        = $wpdb->prepare(
+			"SELECT COUNT(DISTINCT p.ID)
+			 FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} s ON s.post_id = p.ID AND s.meta_key = '_fasterfy_ai_status'
+			 WHERE p.post_type = 'attachment' AND p.post_mime_type IN ({$display_in})
+			   AND s.meta_value = %s",
+			$ai_status
+		);
+		return (int) $wpdb->get_var( $sql ); // phpcs:ignore
+	}
+
+	/**
+	 * Reinicia el estado de IA de los adjuntos marcados como 'error', borrando
+	 * el contador de intentos para que puedan reintentarse desde cero.
+	 *
+	 * @return int Número de adjuntos reiniciados.
+	 */
+	public function reset_ai_failed(): int {
+		global $wpdb;
+
+		$ids = array_map(
+			'intval',
+			(array) $wpdb->get_col(
+				"SELECT post_id FROM {$wpdb->postmeta}
+				 WHERE meta_key = '_fasterfy_ai_status' AND meta_value = 'error'"
+			) // phpcs:ignore
+		);
+
+		foreach ( $ids as $id ) {
+			delete_post_meta( $id, '_fasterfy_ai_attempts' );
+			delete_post_meta( $id, '_fasterfy_ai_status' );
+		}
+
+		return count( $ids );
 	}
 
 	/**
@@ -406,13 +453,25 @@ final class MediaScanner {
 		$display_in = $this->display_in_clause();
 
 		$joins  = "LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_fasterfy_status'";
+		$joins .= " LEFT JOIN {$wpdb->postmeta} ai ON ai.post_id = p.ID AND ai.meta_key = '_fasterfy_ai_status'";
 		$where  = "p.post_type = 'attachment' AND p.post_mime_type IN ({$display_in})";
 		$params = [];
 
 		if ( 'pending' === $status ) {
+			// Sin optimizar (solo tipos optimizables).
+			$where .= " AND p.post_mime_type IN ({$this->optimizable_in_clause()})";
 			$where .= " AND ( m.meta_value IS NULL OR m.meta_value <> 'optimized' )";
 		} elseif ( 'optimized' === $status ) {
 			$where .= " AND m.meta_value = 'optimized'";
+		} elseif ( 'ai_done' === $status ) {
+			// IA aplicada correctamente.
+			$where .= " AND ai.meta_value = 'done'";
+		} elseif ( 'ai_error' === $status ) {
+			// IA con error permanente (tras agotar reintentos reales).
+			$where .= " AND ai.meta_value = 'error'";
+		} elseif ( 'ai_pending' === $status ) {
+			// Falta generar texto de IA (nunca hecho, pospuesto o en error).
+			$where .= " AND ( ai.meta_value IS NULL OR ai.meta_value NOT IN ( 'done', 'blocked' ) )";
 		}
 
 		if ( '' !== $search ) {

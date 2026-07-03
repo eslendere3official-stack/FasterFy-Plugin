@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.18
+Stable tag: 1.0.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,14 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.19 =
+* IA (fiabilidad): los límites de peticiones del proveedor (HTTP 429, típicos en planes gratuitos como Gemini) ya NO se tratan como error permanente. Antes, tras 3 topes de rate-limit una imagen quedaba excluida para siempre y el lote "se detenía"; ahora esos errores son transitorios, no gastan reintentos y la imagen se reprocesa automáticamente.
+* IA (backoff): la cola respeta el tiempo de espera sugerido por el proveedor (cabecera Retry-After) y auto-regula su ritmo hasta completar todo el lote sin intervención.
+* IA (selección manual): la generación por lotes seleccionados añade una pausa entre peticiones para no saturar el proveedor.
+* Biblioteca: nuevos filtros por estado — Sin optimizar, Optimizados, IA aplicada, IA pendiente, IA con error — para gestión masiva.
+* Biblioteca: botón "Reintentar IA fallidas" que reinicia y relanza la generación de las imágenes con error de IA en un clic.
+* Conversión: la calidad AVIF por defecto ahora es 80 (peso muy bajo con calidad excelente) en instalaciones nuevas.
 
 = 1.0.18 =
 * IA (fix importante): los modelos "thinking" como Gemini 2.5 Flash consumían el presupuesto de tokens razonando y devolvían el JSON truncado o vacío; ahora se desactiva el razonamiento en endpoints de Google y se amplía el límite de tokens (400 → 1500). El texto generado (alt, título, descripción, keywords) vuelve a aplicarse correctamente.

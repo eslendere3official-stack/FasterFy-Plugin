@@ -40,6 +40,14 @@ final class QueueManager implements Bootable {
 	private AIManager $ai;
 
 	/**
+	 * Segundos de espera solicitados por el proveedor tras un rate-limit (429)
+	 * durante el lote en curso. 0 = sin límite alcanzado.
+	 *
+	 * @var int
+	 */
+	private int $retry_after = 0;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Settings         $settings  Ajustes.
@@ -111,17 +119,20 @@ final class QueueManager implements Bootable {
 	 */
 	public function get_state(): array {
 		$default = [
-			'status'     => 'idle', // idle|running|paused|completed|exhausted.
-			'mode'       => 'optimize', // optimize|ai|both.
-			'total'      => 0,
-			'processed'  => 0,
-			'succeeded'  => 0,
-			'failed'     => 0,
-			'skipped'    => 0,
-			'overrides'  => [],
-			'started_at' => null,
-			'updated_at' => null,
-			'engine'     => $this->engine_label(),
+			'status'      => 'idle', // idle|running|paused|completed|exhausted.
+			'mode'        => 'optimize', // optimize|ai|both.
+			'total'       => 0,
+			'processed'   => 0,
+			'succeeded'   => 0,
+			'failed'      => 0,
+			'skipped'     => 0,
+			'overrides'   => [],
+			'started_at'  => null,
+			'updated_at'  => null,
+			// Segundos que el navegador debe esperar antes del próximo lote
+			// cuando el proveedor de IA aplicó rate-limit (0 = ritmo normal).
+			'retry_after' => 0,
+			'engine'      => $this->engine_label(),
 		];
 		$state = get_option( self::STATE_OPTION, [] );
 		return is_array( $state ) ? array_merge( $default, $state ) : $default;
@@ -327,8 +338,17 @@ final class QueueManager implements Bootable {
 			return;
 		}
 
+		$this->retry_after = 0;
+		$hit_rate_limit    = false;
+
 		foreach ( $ids as $id ) {
 			$outcome = $this->process_item( (int) $id, $mode, $overrides );
+
+			// Rate-limit del proveedor: corta el lote y reprograma con espera.
+			if ( 'retry' === $outcome ) {
+				$hit_rate_limit = true;
+				break;
+			}
 
 			$state['processed'] = (int) $state['processed'] + 1;
 			if ( 'success' === $outcome ) {
@@ -343,6 +363,22 @@ final class QueueManager implements Bootable {
 			if ( 'fail' === $outcome ) {
 				update_post_meta( (int) $id, '_fasterfy_status', 'error' );
 			}
+		}
+
+		// Si se alcanzó el rate-limit, reprograma el siguiente lote con la espera
+		// sugerida por el proveedor y no toques los contadores como fallo.
+		if ( $hit_rate_limit ) {
+			$this->set_state(
+				[
+					'processed'   => $state['processed'],
+					'succeeded'   => $state['succeeded'],
+					'failed'      => $state['failed'],
+					'skipped'     => $state['skipped'],
+					'retry_after' => max( 5, $this->retry_after ),
+				]
+			);
+			$this->enqueue_next_batch( max( 5, $this->retry_after ) );
+			return;
 		}
 
 		$this->set_state(
@@ -448,10 +484,18 @@ final class QueueManager implements Bootable {
 
 			// Presupuesto de tiempo: no exceder ~20 s por petición para no chocar
 			// con el max_execution_time / timeouts de hosts compartidos.
-			$deadline = microtime( true ) + 20.0;
+			$deadline          = microtime( true ) + 20.0;
+			$this->retry_after = 0;
+			$hit_rate_limit    = false;
 
 			foreach ( $ids as $id ) {
 				$outcome = $this->process_item( (int) $id, $mode, $overrides );
+
+				// Rate-limit del proveedor: corta el lote sin penalizar el adjunto.
+				if ( 'retry' === $outcome ) {
+					$hit_rate_limit = true;
+					break;
+				}
 
 				$state['processed'] = (int) $state['processed'] + 1;
 				if ( 'success' === $outcome ) {
@@ -470,19 +514,31 @@ final class QueueManager implements Bootable {
 				}
 			}
 
-			$this->set_state(
-				[
-					'processed' => $state['processed'],
-					'succeeded' => $state['succeeded'],
-					'failed'    => $state['failed'],
-					'skipped'   => $state['skipped'],
-				]
-			);
+			$patch = [
+				'processed'   => $state['processed'],
+				'succeeded'   => $state['succeeded'],
+				'failed'      => $state['failed'],
+				'skipped'     => $state['skipped'],
+				'retry_after' => $hit_rate_limit ? max( 5, $this->retry_after ) : 0,
+			];
+
+			if ( $hit_rate_limit ) {
+				$this->logger->warning(
+					sprintf(
+						/* translators: %d = segundos */
+						__( 'Ritmo reducido por el proveedor de IA: esperando %d s antes de continuar.', 'fasterfy' ),
+						(int) $patch['retry_after']
+					),
+					'ai'
+				);
+			}
+
+			$this->set_state( $patch );
 
 			$remaining = $this->count_for_mode( $mode );
 
 			if ( $remaining <= 0 ) {
-				return $this->set_state( [ 'status' => 'completed' ] );
+				return $this->set_state( [ 'status' => 'completed', 'retry_after' => 0 ] );
 			}
 
 			return $this->get_state();
@@ -520,7 +576,7 @@ final class QueueManager implements Bootable {
 	 * @param int                  $attachment_id ID.
 	 * @param string               $mode          optimize|ai|both.
 	 * @param array<string, mixed> $overrides     Sobrescrituras de conversión.
-	 * @return string success|skipped|fail
+	 * @return string success|skipped|fail|retry ('retry' = rate-limit transitorio).
 	 */
 	public function process_item( int $attachment_id, string $mode = 'both', array $overrides = [] ): string {
 		// Reversión en masa: restaura el original desde el respaldo.
@@ -557,6 +613,12 @@ final class QueueManager implements Bootable {
 					if ( $ai_result['success'] ?? false ) {
 						$did_ai = true;
 						$this->consume_credit();
+					} elseif ( ! empty( $ai_result['retryable'] ) ) {
+						// Rate-limit / fallo transitorio del proveedor: detén el lote
+						// y pide esperar. El adjunto queda 'pending' (sin gastar
+						// intento) y se reintentará automáticamente.
+						$this->retry_after = max( $this->retry_after, (int) ( $ai_result['retry_after'] ?? 15 ) );
+						return 'retry';
 					}
 				}
 			}

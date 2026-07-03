@@ -359,9 +359,12 @@
 	function viewMedia( view ) {
 		view.innerHTML = topbar( 'Biblioteca', 'Optimización retroactiva y mutación nativa de medios.', '' ) +
 			bulkActionsCard() +
-			'<div class="ff-toolbar" style="justify-content:space-between">' +
-				'<div class="ff-tabs" data-action="media-tab">' +
-					tabBtn( 'all', 'Todos' ) + tabBtn( 'pending', 'Pendientes' ) + tabBtn( 'optimized', 'Optimizados' ) +
+			'<div class="ff-toolbar" style="justify-content:space-between;flex-wrap:wrap;gap:10px">' +
+				'<div class="ff-tabs" data-action="media-tab" style="flex-wrap:wrap">' +
+					tabBtn( 'all', 'Todos' ) + tabBtn( 'pending', 'Sin optimizar' ) + tabBtn( 'optimized', 'Optimizados' ) +
+					( State.settings.ai && State.settings.ai.enabled
+						? ( tabBtn( 'ai_done', 'IA aplicada' ) + tabBtn( 'ai_pending', 'IA pendiente' ) + tabBtn( 'ai_error', 'IA con error' ) )
+						: '' ) +
 				'</div>' +
 				'<div class="ff-tabs" data-action="media-view">' +
 					'<button data-view="list" class="' + ( 'grid' !== State.media.view ? 'is-active' : '' ) + '">☰ Lista</button>' +
@@ -389,6 +392,7 @@
 		var btns = '<button class="ff-btn ff-btn--primary" data-action="start-queue" data-mode="optimize">⚡ Optimizar todo</button>';
 		if ( aiOn ) {
 			btns += '<button class="ff-btn ff-btn--accent" data-action="start-queue" data-mode="ai">🧠 Generar IA en todo</button>';
+			btns += '<button class="ff-btn ff-btn--ghost" data-action="ai-reset-failed" title="Reintentar las imágenes cuyo texto de IA falló">🔁 Reintentar IA fallidas</button>';
 		}
 		btns += '<button class="ff-btn ff-btn--danger" data-action="start-queue" data-mode="rollback">↩ Revertir todo</button>';
 
@@ -992,7 +996,19 @@
 			if ( State.summary ) { State.summary.library = res.library; State.summary.queue = res.queue; }
 			updateQueueViews();
 			if ( 'running' === res.queue.status ) {
-				setTimeout( driveTick, 500 );
+				// Si el proveedor de IA pidió esperar (rate-limit), respetamos ese
+				// tiempo antes del próximo lote. La cola se auto-regula y termina sola.
+				var retry = parseInt( res.queue.retry_after, 10 ) || 0;
+				if ( retry > 0 ) {
+					if ( ! State.throttleNotified ) {
+						State.throttleNotified = true;
+						toast( 'Ritmo ajustado al límite del proveedor de IA. El proceso continúa solo…', 'info' );
+					}
+					setTimeout( driveTick, Math.min( 60, retry ) * 1000 );
+				} else {
+					State.throttleNotified = false;
+					setTimeout( driveTick, 500 );
+				}
 			} else {
 				stopDriving();
 				if ( 'completed' === res.queue.status ) { toast( 'Procesamiento completado 🎉', 'success' ); }
@@ -1014,20 +1030,31 @@
 	/* ============================================================
 	 * Acciones (event delegation)
 	 * ============================================================ */
-	/** Ejecuta una petición por cada id, en secuencia, con aviso de progreso. */
-	function runSequential( ids, makeReq, doneLabel ) {
+	/**
+	 * Ejecuta una petición por cada id, en secuencia, con aviso de progreso.
+	 * `delay` (ms) añade una pausa entre peticiones para no saturar el proveedor
+	 * de IA (rate limits en planes gratuitos). Reintenta una vez tras un fallo.
+	 */
+	function runSequential( ids, makeReq, doneLabel, delay ) {
+		delay = delay || 0;
 		var total = ids.length;
 		var ok = 0;
+		var failed = 0;
 		toast( 'Procesando ' + total + ' imagen(es)…', 'info' );
 		function next() {
 			if ( ! ids.length ) {
-				toast( doneLabel + ': ' + ok + '/' + total + ' ✓', 'success' );
+				var msg = doneLabel + ': ' + ok + '/' + total + ' ✓';
+				if ( failed ) { msg += ' · ' + failed + ' pendiente(s), usa "Reintentar" si hace falta'; }
+				toast( msg, failed ? 'info' : 'success' );
 				State.media.selected = [];
 				loadMedia();
 				return;
 			}
 			var id = ids.shift();
-			makeReq( id ).then( function () { ok++; } ).catch( function () {} ).then( function () { next(); } );
+			makeReq( id )
+				.then( function () { ok++; } )
+				.catch( function () { failed++; } )
+				.then( function () { delay > 0 ? setTimeout( next, delay ) : next(); } );
 		}
 		next();
 	}
@@ -1138,7 +1165,8 @@
 				runSequential( State.media.selected.slice(), function ( id ) { return Api.post( '/optimize', { id: id, mode: 'optimize' } ); }, 'Optimizadas' );
 				break;
 			case 'sel-ai':
-				runSequential( State.media.selected.slice(), function ( id ) { return Api.post( '/ai/item', { id: id } ); }, 'Textos generados' );
+				// Pausa de 1.2 s entre imágenes para respetar rate limits de IA.
+				runSequential( State.media.selected.slice(), function ( id ) { return Api.post( '/ai/item', { id: id } ); }, 'Textos generados', 1200 );
 				break;
 			case 'sel-rollback':
 				runSequential( State.media.selected.slice(), function ( id ) { return Api.post( '/rollback', { id: id } ); }, 'Revertidas' );
@@ -1148,6 +1176,20 @@
 				break;
 			case 'clear-logs':
 				Api.del( '/logs' ).then( function () { State.logs.page = 1; loadLogs(); toast( 'Registros limpiados.', 'success' ); } );
+				break;
+			case 'ai-reset-failed':
+				Api.post( '/ai/reset-failed' ).then( function ( res ) {
+					var n = res.reset || 0;
+					if ( n > 0 ) {
+						toast( n + ' imagen(es) reiniciada(s). Iniciando reintento…', 'success' );
+						// Relanza la generación de IA para toda la biblioteca pendiente.
+						Api.post( '/queue/start', { mode: 'ai' } ).then( function ( r ) {
+							State.queue = r.queue; State.driveErrors = 0; updateQueueViews(); startDriving();
+						} );
+					} else {
+						toast( 'No hay imágenes con IA en error.', 'info' );
+					}
+				} ).catch( function ( er ) { toast( er.message, 'error' ); } );
 				break;
 			case 'ai-test':
 				actionEl.innerHTML = '<span class="ff-spinner"></span> Probando…';

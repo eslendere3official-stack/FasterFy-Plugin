@@ -19,6 +19,12 @@ final class VisionResult {
 	public bool $success = false;
 	public string $message = '';
 
+	/** Indica si el fallo es transitorio (rate limit, red, 5xx) y conviene reintentar. */
+	public bool $retryable = false;
+
+	/** Segundos sugeridos de espera antes de reintentar (Retry-After). */
+	public int $retry_after = 0;
+
 	/** Texto alternativo (alt) denotativo y fáctico. */
 	public string $alt = '';
 
@@ -54,13 +60,17 @@ final class VisionResult {
 	/**
 	 * Crea un resultado de error.
 	 *
-	 * @param string $message Mensaje.
+	 * @param string $message     Mensaje.
+	 * @param bool   $retryable   Si el fallo es transitorio y conviene reintentar.
+	 * @param int    $retry_after Segundos sugeridos de espera.
 	 * @return self
 	 */
-	public static function fail( string $message ): self {
-		$r          = new self();
-		$r->success = false;
-		$r->message = $message;
+	public static function fail( string $message, bool $retryable = false, int $retry_after = 0 ): self {
+		$r              = new self();
+		$r->success     = false;
+		$r->message     = $message;
+		$r->retryable   = $retryable;
+		$r->retry_after = max( 0, $retry_after );
 		return $r;
 	}
 }

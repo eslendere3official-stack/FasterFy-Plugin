@@ -105,7 +105,7 @@ final class AIManager implements Bootable {
 	 * @return array{success: bool, blocked: bool, alt: string, message: string}
 	 */
 	public function process_attachment( int $attachment_id ): array {
-		$fail = [ 'success' => false, 'blocked' => false, 'alt' => '', 'message' => '' ];
+		$fail = [ 'success' => false, 'blocked' => false, 'retryable' => false, 'retry_after' => 0, 'alt' => '', 'message' => '' ];
 
 		if ( ! $this->is_enabled() ) {
 			$fail['message'] = __( 'La IA no está habilitada.', 'fasterfy' );
@@ -136,6 +136,31 @@ final class AIManager implements Bootable {
 		$result = $this->provider()->analyze( $file, $context );
 
 		if ( ! $result->success ) {
+			// Fallo transitorio (rate limit / red / 5xx): NO consumir intento ni
+			// marcar error permanente. Se deja como 'pending' para reintentar en
+			// el siguiente ciclo, y se informa el tiempo de espera sugerido.
+			if ( $result->retryable ) {
+				update_post_meta( $attachment_id, '_fasterfy_ai_status', 'pending' );
+				$this->logger->warning(
+					sprintf(
+						/* translators: %s = mensaje */
+						__( 'IA pospuesta (reintentable): %s', 'fasterfy' ),
+						$result->message
+					),
+					'ai',
+					$attachment_id
+				);
+				return [
+					'success'     => false,
+					'blocked'     => false,
+					'retryable'   => true,
+					'retry_after' => $result->retry_after,
+					'alt'         => '',
+					'message'     => $result->message,
+				];
+			}
+
+			// Fallo permanente (config/modelo): consume intento y marca error.
 			$this->bump_ai_attempts( $attachment_id );
 			update_post_meta( $attachment_id, '_fasterfy_ai_status', 'error' );
 			$this->logger->error( $result->message, 'ai', $attachment_id );
@@ -196,10 +221,12 @@ final class AIManager implements Bootable {
 		);
 
 		return [
-			'success' => true,
-			'blocked' => false,
-			'alt'     => $injected_alt,
-			'message' => __( 'Metadatos de IA aplicados.', 'fasterfy' ),
+			'success'     => true,
+			'blocked'     => false,
+			'retryable'   => false,
+			'retry_after' => 0,
+			'alt'         => $injected_alt,
+			'message'     => __( 'Metadatos de IA aplicados.', 'fasterfy' ),
 		];
 	}
 

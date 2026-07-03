@@ -164,7 +164,8 @@ final class OpenAIProvider implements AIProvider {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return VisionResult::fail( $response->get_error_message() );
+			// Error de red/timeout: transitorio, conviene reintentar.
+			return VisionResult::fail( $response->get_error_message(), true, 10 );
 		}
 
 		$code = wp_remote_retrieve_response_code( $response );
@@ -172,7 +173,30 @@ final class OpenAIProvider implements AIProvider {
 
 		if ( $code < 200 || $code >= 300 ) {
 			$msg = $raw['error']['message'] ?? sprintf( 'HTTP %d', $code );
-			return VisionResult::fail( (string) $msg );
+
+			// 429 (rate limit) y 5xx (fallo del proveedor) son transitorios:
+			// NO deben contar como error permanente ni agotar reintentos.
+			if ( 429 === $code ) {
+				$retry_after = (int) wp_remote_retrieve_header( $response, 'retry-after' );
+				if ( $retry_after <= 0 ) {
+					$retry_after = 30; // Espera prudente por defecto ante rate limit.
+				}
+				return VisionResult::fail(
+					sprintf(
+						/* translators: %s = mensaje del proveedor */
+						__( 'Límite de peticiones del proveedor (429). Reintentando automáticamente. %s', 'fasterfy' ),
+						(string) $msg
+					),
+					true,
+					$retry_after
+				);
+			}
+			if ( $code >= 500 ) {
+				return VisionResult::fail( (string) $msg, true, 10 );
+			}
+
+			// Otros 4xx (400/401/403/404): error permanente de configuración.
+			return VisionResult::fail( (string) $msg, false, 0 );
 		}
 
 		$content       = $raw['choices'][0]['message']['content'] ?? '';

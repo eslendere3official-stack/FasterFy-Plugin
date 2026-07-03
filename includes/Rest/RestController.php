@@ -84,6 +84,7 @@ final class RestController implements Bootable {
 			[ 'logs', WP_REST_Server::DELETABLE, 'clear_logs' ],
 			[ 'ai/test', WP_REST_Server::CREATABLE, 'ai_test' ],
 			[ 'ai/item', WP_REST_Server::CREATABLE, 'ai_item' ],
+			[ 'ai/reset-failed', WP_REST_Server::CREATABLE, 'ai_reset_failed' ],
 			// Diagnóstico y testing
 			[ 'diagnostic/ai', WP_REST_Server::READABLE, 'diagnostic_ai_config' ],
 			[ 'diagnostic/ai/connection', WP_REST_Server::READABLE, 'diagnostic_ai_connection' ],
@@ -366,6 +367,16 @@ final class RestController implements Bootable {
 		}
 		$result = $this->core->ai()->process_attachment( $id );
 		return $this->ok( [ 'id' => $id, 'result' => $result, 'item' => $this->item_snapshot( $id ) ] );
+	}
+
+	/**
+	 * Reinicia los adjuntos con IA en error para poder reintentarlos.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function ai_reset_failed(): WP_REST_Response {
+		$count = $this->core->scanner()->reset_ai_failed();
+		return $this->ok( [ 'reset' => $count ] );
 	}
 
 	/**
