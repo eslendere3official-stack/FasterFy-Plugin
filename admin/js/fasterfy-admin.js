@@ -806,17 +806,17 @@
 				'<div class="ff-settings-grid">' +
 					'<div class="ff-section-title">Modelo multimodal</div>' +
 					toggleField( 'ai.enabled', 'Activar generación de textos', ai.enabled, 'Analiza la imagen y genera texto alternativo, títulos y descripciones automáticamente.' ) +
-					field( 'ai.provider', 'Proveedor', selectInput( 'ai.provider', ai.provider, [ [ 'openai', 'OpenAI-compatible' ], [ 'fasterfy_cloud', 'FasterFy Cloud' ] ] ) ) +
-					field( 'ai.api_base', 'Endpoint base', textInput( 'ai.api_base', ai.api_base ) ) +
-					field( 'ai.api_key', 'API Key' + ( ai.has_api_key ? ' (configurada ✓)' : '' ), passwordInput( 'ai.api_key', '', ai.has_api_key ? '•••••••• (deja vacío para conservar)' : 'sk-…' ) ) +
-					field( 'ai.vision_model', 'Modelo de visión', textInput( 'ai.vision_model', ai.vision_model ) ) +
-					field( 'ai.language', 'Idioma de descripciones', textInput( 'ai.language', ai.language ) ) +
+					field( 'ai.provider', 'Proveedor', selectInput( 'ai.provider', ai.provider, [ [ 'openai', 'OpenAI-compatible' ], [ 'fasterfy_cloud', 'FasterFy Cloud' ] ] ), 'Servicio que analiza las imágenes y redacta los textos. "OpenAI-compatible" funciona con OpenAI, Google Gemini, OpenRouter, Groq y similares.' ) +
+					field( 'ai.api_base', 'Endpoint base', textInput( 'ai.api_base', ai.api_base ), 'Dirección del servicio (endpoint). Ej.: https://api.openai.com/v1 o el que indique tu proveedor.' ) +
+					field( 'ai.api_key', 'API Key' + ( ai.has_api_key ? ' (configurada ✓)' : '' ), passwordInput( 'ai.api_key', '', ai.has_api_key ? '•••••••• (deja vacío para conservar)' : 'sk-…' ), 'Tu clave privada del proveedor. Se guarda cifrada y nunca se muestra. Déjala vacía para conservar la actual.' ) +
+					field( 'ai.vision_model', 'Modelo', textInput( 'ai.vision_model', ai.vision_model ), 'Nombre del modelo que "ve" la imagen. Ej.: gpt-4o-mini (OpenAI) o gemini-2.5-flash (Google).' ) +
+					field( 'ai.language', 'Idioma de los textos', textInput( 'ai.language', ai.language ), 'Idioma en el que se generan los textos. Códigos: es (español), en (inglés), fr (francés), etc.' ) +
 					( pro ? rangeField( 'ai.temperature', 'Temperatura (anti-alucinación)', ai.temperature, 0, 1, 0.05 ) : '' ) +
 					( pro ? rangeField( 'ai.alt_max_length', 'Longitud máx. del Alt Text', ai.alt_max_length, 20, 300, 5 ) : '' ) +
 
 					'<div class="ff-section-title">Generación</div>' +
 					toggleField( 'ai.generate_alt', 'Generar Alt Text', ai.generate_alt, 'Inyecta _wp_attachment_image_alt de forma nativa.' ) +
-					toggleField( 'ai.generate_title', 'Generar título / leyenda', ai.generate_title ) +
+					toggleField( 'ai.generate_title', 'Generar título / leyenda', ai.generate_title, 'Rellena el título y la leyenda del adjunto a partir de lo que muestra la imagen.' ) +
 					toggleField( 'ai.hyphenate_title', 'Título con guiones (SEO)', ai.hyphenate_title, 'Separa las palabras del título con guiones. Ej.: Retrato-de-hombre-joven.' ) +
 					toggleField( 'ai.generate_description', 'Generar descripción', ai.generate_description, 'Rellena el campo Descripción del adjunto.' ) +
 					( pro ? toggleField( 'ai.semantic_rename', 'Renombrado semántico SEO', ai.semantic_rename, 'Renombra el archivo con keywords y actualiza la BD.' ) : '' ) +
@@ -825,7 +825,7 @@
 					( pro ? toggleField( 'moderation.enabled', 'Moderación NSFW activa', mod.enabled, 'Evalúa cada activo antes de la IA generativa.' ) : '' ) +
 					( pro ? toggleField( 'moderation.block_generative', 'Bloquear IA en contenido sensible', mod.block_generative, 'Optimiza técnicamente pero omite la IA generativa.' ) : '' ) +
 					( pro ? rangeField( 'moderation.nsfw_threshold', 'Umbral de bloqueo', mod.nsfw_threshold, 0, 1, 0.05 ) : '' ) +
-					( pro ? field( 'moderation.fallback_alt', 'Alt text de respaldo', textInput( 'moderation.fallback_alt', mod.fallback_alt ) ) : '' ) +
+					( pro ? field( 'moderation.fallback_alt', 'Texto alternativo de respaldo', textInput( 'moderation.fallback_alt', mod.fallback_alt ), 'Texto genérico que se asigna a las imágenes marcadas como sensibles (a esas no se les envía al modelo generativo).' ) : '' ) +
 				'</div>' +
 				( ! pro ? '<p class="ff-muted ff-mt" style="font-size:12px">Cambia a <b>Pro</b> para ajustar temperatura, renombrado semántico y moderación.</p>' : '' ) +
 				'<div class="ff-row ff-mt-lg"><button class="ff-btn ff-btn--primary ff-btn--lg" data-action="save-settings">Guardar cambios</button></div>' +
@@ -848,34 +848,34 @@
 			'<div class="ff-card ff-card--pad-lg ff-mt">' +
 				'<div class="ff-settings-grid">' +
 					'<div class="ff-section-title">Conversión y compresión</div>' +
-					field( 'conversion.target_format', 'Formato objetivo (JPG/PNG)', selectInput( 'conversion.target_format', c.target_format, [ [ 'webp', 'WebP' ], [ 'avif', 'AVIF' ], [ 'auto', 'Automático (mejor disponible)' ] ] ) ) +
-					field( 'conversion.png_strategy', 'Estrategia PNG', selectInput( 'conversion.png_strategy', c.png_strategy, [ [ 'lossy', 'Con pérdida (cuantización)' ], [ 'lossless', 'Sin pérdida' ] ] ) ) +
+					field( 'conversion.target_format', 'Formato objetivo (JPG/PNG)', selectInput( 'conversion.target_format', c.target_format, [ [ 'webp', 'WebP' ], [ 'avif', 'AVIF' ], [ 'auto', 'Automático (mejor disponible)' ] ] ), 'Formato moderno al que se convierten tus JPG y PNG. AVIF comprime más que WebP; "Automático" elige el mejor que soporte tu servidor.' ) +
+					field( 'conversion.png_strategy', 'Estrategia PNG', selectInput( 'conversion.png_strategy', c.png_strategy, [ [ 'lossy', 'Con pérdida (cuantización)' ], [ 'lossless', 'Sin pérdida' ] ] ), 'Cómo comprimir los PNG que no se conviertan: "con pérdida" reduce el número de colores (más ligero); "sin pérdida" los conserva todos.' ) +
 					toggleField( 'conversion.png_to_webp', 'Convertir PNG a WebP/AVIF si ahorra más', c.png_to_webp, 'Recomendado: usa el "Formato objetivo" elegido (WebP o AVIF, ambos conservan transparencia). Si no ahorra, intenta comprimir el PNG.' ) +
 					rangeField( 'conversion.webp_quality', 'Calidad WebP', c.webp_quality, 1, 100, 1, 'Menor valor = archivos más ligeros. 75–82 es un buen equilibrio.' ) +
-					rangeField( 'conversion.avif_quality', 'Calidad AVIF', c.avif_quality, 1, 100, 1, 'Menor valor = archivos mucho más ligeros. Para máximo ahorro prueba 50–60; AVIF mantiene gran calidad.' ) +
+					rangeField( 'conversion.avif_quality', 'Calidad AVIF', c.avif_quality, 1, 100, 1, 'Menor valor = archivos mucho más ligeros. Para máximo ahorro, 30–40 (AVIF mantiene buena calidad incluso bajo). Sube el valor solo si notas pérdida visible.' ) +
 					( pro ? rangeField( 'conversion.png_max_colors', 'Colores PNG (lossy)', c.png_max_colors, 2, 256, 2 ) : '' ) +
-					( pro ? field( 'conversion.max_width', 'Ancho máximo (px, 0=off)', numberInput( 'conversion.max_width', c.max_width ) ) : '' ) +
+					( pro ? field( 'conversion.max_width', 'Ancho máximo (px, 0=off)', numberInput( 'conversion.max_width', c.max_width ), 'Reduce las imágenes más anchas que este valor (en píxeles). Ideal para fotos enormes de móvil: baja mucho el peso. 0 = no redimensionar.' ) : '' ) +
 					toggleField( 'conversion.sanitize_svg', 'Sanitizar SVG', c.sanitize_svg, 'Elimina scripts y metadatos de diseño.' ) +
-					toggleField( 'conversion.strip_metadata', 'Eliminar metadatos EXIF', c.strip_metadata ) +
-					toggleField( 'conversion.keep_original', 'Conservar original como respaldo', c.keep_original ) +
+					toggleField( 'conversion.strip_metadata', 'Eliminar metadatos EXIF', c.strip_metadata, 'Quita datos incrustados como modelo de cámara, ubicación GPS y fecha. Reduce el peso y protege la privacidad.' ) +
+					toggleField( 'conversion.keep_original', 'Conservar original como respaldo', c.keep_original, 'Guarda una copia intacta del archivo original para poder revertir la optimización con 1 clic.' ) +
 
 					'<div class="ff-section-title">Automatización</div>' +
-					toggleField( 'automation.optimize_on_upload', 'Optimizar al subir', a.optimize_on_upload, 'Procesa automáticamente cada subida nueva.' ) +
-					toggleField( 'automation.ai_on_upload', 'Aplicar IA al subir', a.ai_on_upload ) +
+					toggleField( 'automation.optimize_on_upload', 'Optimizar al subir', a.optimize_on_upload, 'Comprime y convierte automáticamente cada imagen nueva que subas a la biblioteca.' ) +
+					toggleField( 'automation.ai_on_upload', 'Generar textos SEO al subir', a.ai_on_upload, 'Genera automáticamente el texto alternativo, título y descripción de cada imagen nueva. Consume peticiones de tu proveedor de textos.' ) +
 
 					( pro ? '<div class="ff-section-title">Concurrencia y throttling (Pro)</div>' : '' ) +
-					( pro ? rangeField( 'throttling.batch_size', 'Tamaño de lote', t.batch_size, 1, 100, 1 ) : '' ) +
-					( pro ? rangeField( 'throttling.max_concurrency', 'Concurrencia máx.', t.max_concurrency, 1, 50, 1 ) : '' ) +
-					( pro ? rangeField( 'throttling.cooldown_seconds', 'Enfriamiento entre lotes (s)', t.cooldown_seconds, 0, 300, 1 ) : '' ) +
+					( pro ? rangeField( 'throttling.batch_size', 'Tamaño de lote', t.batch_size, 1, 100, 1, 'Cuántas imágenes se procesan por tanda. Si tu proveedor de textos te limita (plan gratuito), baja este número a 1–2.' ) : '' ) +
+					( pro ? rangeField( 'throttling.max_concurrency', 'Concurrencia máx.', t.max_concurrency, 1, 50, 1, 'Peticiones simultáneas máximas. Mantenlo bajo (1–3) con planes gratuitos para evitar bloqueos por límite.' ) : '' ) +
+					( pro ? rangeField( 'throttling.cooldown_seconds', 'Enfriamiento entre lotes (s)', t.cooldown_seconds, 0, 300, 1, 'Segundos de pausa entre tandas. Súbelo si tu proveedor de textos te limita a menudo.' ) : '' ) +
 
 					( pro ? '<div class="ff-section-title">Exclusiones (Pro)</div>' : '' ) +
-					( pro ? field( 'exclusions.directories', 'Directorios excluidos (uno por línea)', textareaInput( 'exclusions.directories', ( ex.directories || [] ).join( '\n' ) ) ) : '' ) +
-					( pro ? field( 'exclusions.attachment_ids', 'IDs excluidos (separados por coma)', textInput( 'exclusions.attachment_ids', ( ex.attachment_ids || [] ).join( ',' ) ) ) : '' ) +
+					( pro ? field( 'exclusions.directories', 'Directorios excluidos (uno por línea)', textareaInput( 'exclusions.directories', ( ex.directories || [] ).join( '\n' ) ), 'Carpetas dentro de /uploads que NO quieres tocar (una por línea). Ej.: 2023/12. Útil para proteger imágenes ya optimizadas o gestionadas por otro plugin.' ) : '' ) +
+					( pro ? field( 'exclusions.attachment_ids', 'IDs excluidos (separados por coma)', textInput( 'exclusions.attachment_ids', ( ex.attachment_ids || [] ).join( ',' ) ), 'IDs de imágenes concretas que quieres excluir del procesamiento (separados por coma). El ID de cada imagen aparece en su ficha de detalle (#123).' ) : '' ) +
 
 					'<div class="ff-section-title">Avanzado</div>' +
-					field( 'advanced.log_level', 'Nivel de log', selectInput( 'advanced.log_level', adv.log_level, [ [ 'debug', 'Debug' ], [ 'info', 'Info' ], [ 'warning', 'Warning' ], [ 'error', 'Error' ] ] ) ) +
-					toggleField( 'advanced.prefer_action_scheduler', 'Preferir Action Scheduler', adv.prefer_action_scheduler ) +
-					toggleField( 'advanced.delete_data_on_uninstall', 'Borrar datos al desinstalar', adv.delete_data_on_uninstall ) +
+					field( 'advanced.log_level', 'Nivel de registro (log)', selectInput( 'advanced.log_level', adv.log_level, [ [ 'debug', 'Debug (todo)' ], [ 'info', 'Info (normal)' ], [ 'warning', 'Warning (avisos)' ], [ 'error', 'Error (solo fallos)' ] ] ), 'Cuánto detalle se guarda en la pestaña Registros. "Info" es lo normal; "Debug" registra todo (para diagnosticar problemas); "Error" solo los fallos.' ) +
+					toggleField( 'advanced.prefer_action_scheduler', 'Preferir Action Scheduler', adv.prefer_action_scheduler, 'Si tienes WooCommerce o Action Scheduler instalado, usa ese motor de colas (más robusto para tareas en segundo plano).' ) +
+					toggleField( 'advanced.delete_data_on_uninstall', 'Borrar datos al desinstalar', adv.delete_data_on_uninstall, 'Si se activa, al eliminar el plugin se borran también sus ajustes y registros. Déjalo desactivado si podrías reinstalarlo.' ) +
 				'</div>' +
 				'<div class="ff-row ff-mt-lg">' +
 					'<button class="ff-btn ff-btn--primary ff-btn--lg" data-action="save-settings">Guardar cambios</button>' +
@@ -920,8 +920,10 @@
 	/* ============================================================
 	 * Campos de formulario (helpers)
 	 * ============================================================ */
-	function field( key, label, input ) {
-		return '<div class="ff-field"><label>' + h( label ) + '</label>' + input + '</div>';
+	function field( key, label, input, hint ) {
+		var help = hint ? ' <i class="ff-help" title="' + h( hint ) + '">i</i>' : '';
+		return '<div class="ff-field"><label>' + h( label ) + help + '</label>' + input +
+			( hint ? '<div class="ff-hint">' + h( hint ) + '</div>' : '' ) + '</div>';
 	}
 	function textInput( key, val ) {
 		return '<input type="text" class="ff-input" data-setting="' + key + '" value="' + h( val || '' ) + '">';
@@ -1083,6 +1085,7 @@
 				stopDriving();
 				if ( 'completed' === res.queue.status ) { toast( 'Procesamiento completado 🎉', 'success' ); }
 				if ( 'exhausted' === res.queue.status ) { toast( 'Cola pausada: cuota de créditos agotada.', 'info' ); }
+				if ( 'paused' === res.queue.status && res.queue.notice ) { toast( res.queue.notice, 'error' ); }
 				if ( 'media' === State.route ) { loadMedia(); }
 				if ( 'dashboard' === State.route ) { loadSummary().then( renderDashboardBody ); }
 			}
@@ -1137,15 +1140,23 @@
 	function seqProgress( done, total, label ) {
 		var el = document.getElementById( 'ff-seqprog' );
 		if ( done >= total ) { if ( el ) { el.remove(); } return; }
+		// Se ubica dentro de la misma pila de notificaciones (arriba-derecha) para
+		// mantener consistencia visual con los toasts.
+		var wrap = document.querySelector( '.ff-toasts' );
+		if ( ! wrap ) {
+			wrap = document.createElement( 'div' );
+			wrap.className = 'ff-toasts';
+			document.body.appendChild( wrap );
+		}
 		if ( ! el ) {
 			el = document.createElement( 'div' );
 			el.id = 'ff-seqprog';
 			el.className = 'ff-seqprog';
-			document.body.appendChild( el );
+			wrap.insertBefore( el, wrap.firstChild );
 		}
 		var p = total > 0 ? Math.round( ( done / total ) * 100 ) : 0;
 		el.innerHTML =
-			'<div class="ff-seqprog__head"><span class="ff-spinner"></span> ' + h( label || 'Procesando' ) + ' · <b>' + done + ' / ' + total + '</b></div>' +
+			'<div class="ff-seqprog__head"><span class="ff-spinner"></span><span>' + h( label || 'Procesando' ) + '</span><b>' + done + ' / ' + total + '</b></div>' +
 			'<div class="ff-seqprog__bar"><span style="width:' + p + '%"></span></div>';
 	}
 
@@ -1359,6 +1370,15 @@
 		app.addEventListener( 'click', onClick );
 		app.addEventListener( 'input', onInput );
 		document.addEventListener( 'keydown', onKeydown );
+		// Advierte si intenta cerrar/cambiar de página con un lote en marcha
+		// (el procesamiento lo conduce el navegador; si sale, se pausa).
+		window.addEventListener( 'beforeunload', function ( e ) {
+			if ( State.driving ) {
+				e.preventDefault();
+				e.returnValue = '';
+				return '';
+			}
+		} );
 		renderShell();
 		// Si hay una cola en marcha al cargar, arranca el polling.
 		loadSummary().then( function ( res ) {

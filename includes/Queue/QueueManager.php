@@ -32,6 +32,13 @@ final class QueueManager implements Bootable {
 	public const AS_GROUP     = 'fasterfy';
 	public const LOCK_KEY     = 'fasterfy_queue_lock';
 
+	/**
+	 * Nº máximo de ciclos consecutivos bloqueados por rate-limit (sin avanzar)
+	 * antes de pausar la cola con un aviso. Evita esperar indefinidamente cuando
+	 * el proveedor agotó su cuota (p. ej. límite diario del plan gratuito).
+	 */
+	private const MAX_RL_STREAK = 6;
+
 	private Settings $settings;
 	private Logger $logger;
 	private MediaScanner $scanner;
@@ -132,6 +139,11 @@ final class QueueManager implements Bootable {
 			// Segundos que el navegador debe esperar antes del próximo lote
 			// cuando el proveedor de IA aplicó rate-limit (0 = ritmo normal).
 			'retry_after' => 0,
+			// Ciclos consecutivos bloqueados por rate-limit sin avanzar. Si supera
+			// el umbral, la cola se pausa con un aviso (evita esperar sin fin).
+			'rl_streak'   => 0,
+			// Mensaje informativo para el usuario (p. ej. motivo de pausa).
+			'notice'      => '',
 			'engine'      => $this->engine_label(),
 		];
 		$state = get_option( self::STATE_OPTION, [] );
@@ -187,6 +199,9 @@ final class QueueManager implements Bootable {
 				'skipped'    => 0,
 				'overrides'  => $overrides,
 				'started_at' => current_time( 'mysql', true ),
+				'retry_after' => 0,
+				'rl_streak'  => 0,
+				'notice'     => '',
 			]
 		);
 
@@ -487,6 +502,7 @@ final class QueueManager implements Bootable {
 			$deadline          = microtime( true ) + 20.0;
 			$this->retry_after = 0;
 			$hit_rate_limit    = false;
+			$processed_before  = (int) $state['processed'];
 
 			foreach ( $ids as $id ) {
 				$outcome = $this->process_item( (int) $id, $mode, $overrides );
@@ -514,31 +530,60 @@ final class QueueManager implements Bootable {
 				}
 			}
 
-			$patch = [
-				'processed'   => $state['processed'],
-				'succeeded'   => $state['succeeded'],
-				'failed'      => $state['failed'],
-				'skipped'     => $state['skipped'],
-				'retry_after' => $hit_rate_limit ? max( 5, $this->retry_after ) : 0,
-			];
-
 			if ( $hit_rate_limit ) {
-				$this->logger->warning(
-					sprintf(
-						/* translators: %d = segundos */
-						__( 'Ritmo reducido por el proveedor de IA: esperando %d s antes de continuar.', 'fasterfy' ),
-						(int) $patch['retry_after']
-					),
-					'ai'
+				$progressed = (int) $state['processed'] > $processed_before;
+				$streak     = $progressed ? 0 : ( (int) ( $state['rl_streak'] ?? 0 ) + 1 );
+
+				// Demasiados ciclos seguidos bloqueados sin avanzar: el proveedor
+				// probablemente agotó su cuota (diaria). Pausamos con un aviso claro
+				// en vez de esperar indefinidamente.
+				if ( $streak >= self::MAX_RL_STREAK ) {
+					$this->logger->warning(
+						__( 'Generación de textos pausada: el proveedor de IA está limitando las peticiones de forma sostenida (posible cuota agotada).', 'fasterfy' ),
+						'ai'
+					);
+					return $this->set_state(
+						[
+							'processed'   => $state['processed'],
+							'succeeded'   => $state['succeeded'],
+							'failed'      => $state['failed'],
+							'skipped'     => $state['skipped'],
+							'status'      => 'paused',
+							'retry_after' => 0,
+							'rl_streak'   => 0,
+							'notice'      => __( 'El proveedor de IA está limitando las peticiones (posible cuota diaria agotada en el plan gratuito). Se pausó la generación de textos. Puedes reanudar más tarde, subir el intervalo entre lotes o usar una API de pago.', 'fasterfy' ),
+						]
+					);
+				}
+
+				$this->set_state(
+					[
+						'processed'   => $state['processed'],
+						'succeeded'   => $state['succeeded'],
+						'failed'      => $state['failed'],
+						'skipped'     => $state['skipped'],
+						'retry_after' => max( 5, $this->retry_after ),
+						'rl_streak'   => $streak,
+					]
 				);
+				return $this->get_state();
 			}
 
-			$this->set_state( $patch );
+			$this->set_state(
+				[
+					'processed'   => $state['processed'],
+					'succeeded'   => $state['succeeded'],
+					'failed'      => $state['failed'],
+					'skipped'     => $state['skipped'],
+					'retry_after' => 0,
+					'rl_streak'   => 0,
+				]
+			);
 
 			$remaining = $this->count_for_mode( $mode );
 
 			if ( $remaining <= 0 ) {
-				return $this->set_state( [ 'status' => 'completed', 'retry_after' => 0 ] );
+				return $this->set_state( [ 'status' => 'completed', 'retry_after' => 0, 'notice' => '' ] );
 			}
 
 			return $this->get_state();

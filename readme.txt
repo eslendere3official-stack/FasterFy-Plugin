@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.21
+Stable tag: 1.0.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,16 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.22 =
+* Fiabilidad: si el proveedor de textos limita las peticiones de forma sostenida (posible cuota diaria agotada), la cola ya no espera indefinidamente en "ritmo ajustado": se pausa tras varios ciclos y avisa con un mensaje claro para reanudar más tarde.
+* UX/notificaciones: el indicador de progreso de acciones por selección ahora es legible (colores explícitos, ya no se veía oscuro sobre oscuro) y aparece en el mismo lugar que el resto de avisos (arriba a la derecha), con más consistencia.
+* UX: corregidas las flechas de navegación de la ficha de detalle, que deformaban el diseño y provocaban scroll horizontal; ahora se fijan a los lados de la pantalla.
+* UX: los desplegables (select) adoptan el estilo del plugin (flecha propia y tema oscuro), en lugar del aspecto nativo antiguo.
+* UX: aviso al intentar cerrar o cambiar de página con un lote en marcha (el proceso lo conduce el navegador).
+* Educación: cada ajuste incluye ahora una leyenda explicativa (qué hace el formato objetivo, directorios/IDs excluidos, nivel de registro, etc.).
+* Conversión: la calidad AVIF por defecto baja a 30 para máximo ahorro de peso (AVIF mantiene buena calidad incluso a valores bajos).
+* Textos: "Aplicar IA al subir" pasa a llamarse "Generar textos SEO al subir".
 
 = 1.0.21 =
 * Marca: el eslogan pasa a ser "Pro Media Optimizer" (panel, nombre del plugin y documentación).

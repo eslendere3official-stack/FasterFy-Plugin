@@ -78,7 +78,7 @@ final class PngProcessor implements Processor {
 		if ( $png_to_webp ) {
 			$target  = $this->resolve_target( (string) ( $conversion['target_format'] ?? 'webp' ) );
 			$quality = 'avif' === $target
-				? (int) ( $conversion['avif_quality'] ?? 50 )
+				? (int) ( $conversion['avif_quality'] ?? 30 )
 				: (int) ( $conversion['webp_quality'] ?? 80 );
 			$temp_x  = $this->temp_path( $file, $target );
 			if ( $this->engine->convert( $file, $temp_x, $target, $quality, $max_width, $strip ) && file_exists( $temp_x ) ) {

@@ -443,34 +443,37 @@ html.wp-toolbar { background: #141414; }
 .ff-throttle b { color: var(--ff-warning); }
 @keyframes ffpulsebg { 0%,100% { opacity: 1; } 50% { opacity: 0.72; } }
 
-/* Indicador flotante de progreso para acciones por selección. */
+/* Indicador de progreso para acciones por selección (dentro de la pila de
+ * notificaciones, arriba-derecha). Colores EXPLÍCITOS: vive fuera del scope
+ * del tema, igual que los toasts, así que no puede usar variables CSS. */
 .ff-seqprog {
-	position: fixed; left: 24px; bottom: 24px; z-index: 99999;
-	background: var(--ff-card, #1f1f1f); color: var(--ff-text);
-	border: 1px solid var(--ff-border); border-radius: 12px;
-	padding: 12px 16px; min-width: 240px; box-shadow: 0 12px 40px rgba( 0, 0, 0, 0.35 );
+	background: #161d33; color: #f4f7ff;
+	border: 1px solid rgba( 255, 255, 255, 0.12 ); border-radius: 14px;
+	padding: 14px 18px; min-width: 280px; max-width: 380px;
+	box-shadow: 0 16px 50px rgba( 0, 0, 0, 0.5 );
+	font-size: 14px; font-weight: 600;
 }
-.ff-seqprog__head { font-size: 13px; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.ff-seqprog__bar { height: 8px; border-radius: 8px; background: var(--ff-surface-2); overflow: hidden; }
-.ff-seqprog__bar span { display: block; height: 100%; background: linear-gradient( 90deg, var(--ff-primary), var(--ff-accent) ); transition: width .3s ease; }
+.ff-seqprog__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ff-seqprog__head b { margin-left: auto; color: #33ee33; }
+.ff-seqprog__bar { height: 8px; border-radius: 8px; background: rgba( 255, 255, 255, 0.12 ); overflow: hidden; }
+.ff-seqprog__bar span { display: block; height: 100%; background: linear-gradient( 90deg, #33ee33, #18c93a ); transition: width .3s ease; }
 
-/* Flechas de navegación de la ficha de detalle. */
+/* Flechas de navegación de la ficha: fijas al viewport para no deformar el
+ * panel ni provocar scroll horizontal. */
 .ff-modal__nav {
-	position: absolute; top: 50%; transform: translateY( -50% ); z-index: 3;
-	width: 46px; height: 46px; border-radius: 50%;
-	background: var(--ff-surface-2); color: var(--ff-text);
-	border: 1px solid var(--ff-border); cursor: pointer;
-	font-size: 26px; line-height: 1; display: flex; align-items: center; justify-content: center;
+	position: fixed; top: 50%; transform: translateY( -50% ); z-index: 100001;
+	width: 44px; height: 44px; border-radius: 50%;
+	background: rgba( 20, 20, 20, 0.75 ); color: #fff;
+	border: 1px solid rgba( 255, 255, 255, 0.25 ); cursor: pointer;
+	font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center;
+	backdrop-filter: blur( 4px );
 	transition: background .2s ease, transform .2s ease;
 }
-.ff-modal__nav:hover:not( [disabled] ) { background: var(--ff-primary); color: #10210f; }
-.ff-modal__nav[disabled] { opacity: 0.3; cursor: default; }
-.ff-modal__nav--prev { left: -60px; }
-.ff-modal__nav--next { right: -60px; }
-@media ( max-width: 900px ) {
-	.ff-modal__nav--prev { left: 8px; }
-	.ff-modal__nav--next { right: 8px; }
-}
+.ff-modal__nav:hover:not( [disabled] ) { background: var(--ff-primary); color: #10210f; transform: translateY( -50% ) scale( 1.08 ); }
+.ff-modal__nav[disabled] { opacity: 0.25; cursor: default; }
+.ff-modal__nav--prev { left: 24px; }
+.ff-modal__nav--next { right: 24px; }
+
 
 /* Insignia de modo (Lite/Pro) en Acciones masivas. */
 .ff-modebadge {
@@ -479,3 +482,35 @@ html.wp-toolbar { background: #141414; }
 }
 .ff-modebadge--lite { background: var(--ff-surface-2); color: var(--ff-text-dim); }
 .ff-modebadge--pro { background: var(--ff-primary); color: #10210f; }
+
+
+
+/* ============================================================
+ * v1.0.22 — Selects con estilo del plugin + tooltips
+ * ============================================================ */
+
+/* Dropdowns: quitamos la apariencia nativa (aspecto "Windows 98") y ponemos
+ * una flecha propia. color-scheme hace que el popup nativo use el tema oscuro
+ * en los navegadores que lo soportan. */
+.ff-select {
+	-webkit-appearance: none; -moz-appearance: none; appearance: none;
+	padding-right: 38px !important;
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a8f8a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 13px center !important;
+	background-size: 13px !important;
+	color-scheme: dark;
+	cursor: pointer;
+}
+.fasterfy-app[data-theme="light"] .ff-select { color-scheme: light; }
+.ff-select:hover { border-color: var(--ff-primary); }
+
+/* Ícono de ayuda (i) junto a las etiquetas de los ajustes. */
+.ff-help {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 16px; height: 16px; margin-left: 6px; border-radius: 50%;
+	background: var(--ff-surface-2); color: var(--ff-text-dim);
+	font-size: 11px; font-weight: 700; font-style: normal; cursor: help;
+	border: 1px solid var(--ff-border); vertical-align: middle;
+}
+.ff-help:hover { background: var(--ff-primary); color: #10210f; }

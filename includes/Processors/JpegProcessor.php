@@ -54,7 +54,7 @@ final class JpegProcessor implements Processor {
 		$target     = $this->resolve_target( (string) ( $conversion['target_format'] ?? 'webp' ) );
 
 		$quality   = 'avif' === $target
-			? (int) ( $conversion['avif_quality'] ?? 50 )
+			? (int) ( $conversion['avif_quality'] ?? 30 )
 			: (int) ( $conversion['webp_quality'] ?? 80 );
 		$max_width  = (int) ( $conversion['max_width'] ?? 0 );
 		$strip_meta = (bool) ( $conversion['strip_metadata'] ?? true );
