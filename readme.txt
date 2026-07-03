@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.23
+Stable tag: 1.0.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,10 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.24 =
+* Segundo plano más robusto: además del worker loopback, ahora la cola se encadena por WP-Cron/Action Scheduler (con spawn_cron al iniciar) y se reanuda automáticamente al volver a la pestaña. Los tres motores comparten un bloqueo para no duplicar trabajo, así el proceso continúa en más servidores aunque cierres la pestaña.
+* Nuevo aviso amigable al iniciar un lote: explica que puede tardar unos minutos, que puedes seguir con otras tareas, con barra de progreso y consejos rotando.
 
 = 1.0.23 =
 * Procesamiento en segundo plano REAL: el trabajo por lotes ahora continúa en el servidor aunque cierres la pestaña o navegues a otra parte de WordPress. Se implementa con un worker que se auto-encadena mediante peticiones loopback no bloqueantes, más un vigilante (watchdog) por WP-Cron que reanuda la cadena si se corta. No requiere WooCommerce ni Action Scheduler.

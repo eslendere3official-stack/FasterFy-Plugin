@@ -460,6 +460,7 @@
 	function updateQueueViews() {
 		if ( document.getElementById( 'ff-dash-body' ) ) { renderDashboardBody(); }
 		if ( document.getElementById( 'ff-media-queue' ) ) { renderMediaQueueBar(); }
+		updateProcessingModal();
 	}
 
 	function tabBtn( id, label ) {
@@ -556,6 +557,69 @@
 		var ov = document.getElementById( 'ff-detail' );
 		if ( ov ) { ov.remove(); }
 		State.detailId = null;
+	}
+
+	/* ============================================================
+	 * Modal amigable de "procesando en segundo plano"
+	 * ============================================================ */
+	var PROC_TIPS = [
+		'Convertimos tus imágenes a formatos ultraligeros (WebP/AVIF) sin perder calidad visible.',
+		'Cada imagen optimizada acelera tu web y mejora tu posicionamiento en Google.',
+		'Guardamos el original de cada imagen: puedes revertir cualquier cambio con un clic.',
+		'Imágenes más ligeras = mejor experiencia en móvil y mejores Core Web Vitals.',
+		'Los textos alternativos mejoran la accesibilidad y el SEO de tus imágenes.'
+	];
+
+	function showProcessingModal( mode ) {
+		closeProcessingModal();
+		var label = 'ai' === mode ? 'Generando textos SEO'
+			: ( 'rollback' === mode ? 'Revirtiendo imágenes' : 'Optimizando tu biblioteca' );
+		var ov = document.createElement( 'div' );
+		ov.id = 'ff-procmodal';
+		ov.className = 'ff-modal';
+		ov.innerHTML =
+			'<div class="ff-modal__overlay" data-action="proc-close"></div>' +
+			'<div class="ff-modal__panel ff-procmodal">' +
+				'<div class="ff-procmodal__ico">' + brandMark( 54 ) + '</div>' +
+				'<h2>' + label + '…</h2>' +
+				'<p class="ff-procmodal__lead">Esto puede tardar unos minutos. <b>Puedes seguir usando WordPress con normalidad</b>, cambiar de página o incluso cerrar esta pestaña: el proceso continúa en segundo plano. ☕</p>' +
+				'<div class="ff-procmodal__bar"><span id="ff-procbar" style="width:0%"></span></div>' +
+				'<div class="ff-procmodal__meta" id="ff-procmeta">Preparando…</div>' +
+				'<div class="ff-procmodal__tip">💡 <span id="ff-proctip">' + h( PROC_TIPS[ 0 ] ) + '</span></div>' +
+				'<button class="ff-btn ff-btn--primary ff-btn--lg" data-action="proc-close">Entendido, seguir en segundo plano</button>' +
+			'</div>';
+		document.getElementById( 'fasterfy-app' ).appendChild( ov );
+
+		var i = 0;
+		State.procTipTimer = setInterval( function () {
+			var el = document.getElementById( 'ff-proctip' );
+			if ( ! el ) { clearInterval( State.procTipTimer ); State.procTipTimer = null; return; }
+			i = ( i + 1 ) % PROC_TIPS.length;
+			el.style.opacity = '0';
+			setTimeout( function () { if ( el ) { el.textContent = PROC_TIPS[ i ]; el.style.opacity = '1'; } }, 250 );
+		}, 4000 );
+
+		updateProcessingModal();
+	}
+
+	function updateProcessingModal() {
+		var q = State.queue;
+		var bar = document.getElementById( 'ff-procbar' );
+		if ( ! bar || ! q ) { return; }
+		var p = q.total > 0 ? Math.round( ( q.processed / q.total ) * 100 ) : 0;
+		bar.style.width = p + '%';
+		var meta = document.getElementById( 'ff-procmeta' );
+		if ( meta ) {
+			var txt = ( q.processed || 0 ) + ' / ' + ( q.total || 0 ) + ' procesadas';
+			if ( ( q.retry_after || 0 ) > 0 ) { txt += ' · esperando al proveedor…'; }
+			meta.textContent = txt;
+		}
+	}
+
+	function closeProcessingModal() {
+		var ov = document.getElementById( 'ff-procmodal' );
+		if ( ov ) { ov.remove(); }
+		if ( State.procTipTimer ) { clearInterval( State.procTipTimer ); State.procTipTimer = null; }
 	}
 
 	function detailRow( label, value ) {
@@ -1083,9 +1147,9 @@
 				}
 			} else {
 				stopDriving();
-				if ( 'completed' === res.queue.status ) { toast( 'Procesamiento completado 🎉', 'success' ); }
-				if ( 'exhausted' === res.queue.status ) { toast( 'Cola pausada: cuota de créditos agotada.', 'info' ); }
-				if ( 'paused' === res.queue.status && res.queue.notice ) { toast( res.queue.notice, 'error' ); }
+				if ( 'completed' === res.queue.status ) { closeProcessingModal(); toast( 'Procesamiento completado 🎉', 'success' ); }
+				if ( 'exhausted' === res.queue.status ) { closeProcessingModal(); toast( 'Cola pausada: cuota de créditos agotada.', 'info' ); }
+				if ( 'paused' === res.queue.status && res.queue.notice ) { closeProcessingModal(); toast( res.queue.notice, 'error' ); }
 				if ( 'media' === State.route ) { loadMedia(); }
 				if ( 'dashboard' === State.route ) { loadSummary().then( renderDashboardBody ); }
 			}
@@ -1188,7 +1252,8 @@
 					break;
 				}
 				Api.post( '/queue/start', { mode: mode } ).then( function ( res ) {
-					State.queue = res.queue; State.driveErrors = 0; toast( 'Procesamiento iniciado en segundo plano.', 'success' );
+					State.queue = res.queue; State.driveErrors = 0;
+					if ( 'rollback' !== mode ) { showProcessingModal( mode ); }
 					updateQueueViews();
 					startDriving();
 				} ).catch( function ( er ) { toast( er.message, 'error' ); } );
@@ -1248,6 +1313,9 @@
 				break;
 			case 'detail-close':
 				closeDetail();
+				break;
+			case 'proc-close':
+				closeProcessingModal();
 				break;
 			case 'detail-prev':
 				detailNav( -1 );
@@ -1370,6 +1438,18 @@
 		app.addEventListener( 'click', onClick );
 		app.addEventListener( 'input', onInput );
 		document.addEventListener( 'keydown', onKeydown );
+		// Al volver a la pestaña, refresca el estado y reanuda el avance si la
+		// cola sigue en marcha (los navegadores "congelan" los timers en pestañas
+		// de fondo, así que retomamos al recuperar el foco).
+		document.addEventListener( 'visibilitychange', function () {
+			if ( document.hidden ) { return; }
+			Api.get( '/queue/status' ).then( function ( res ) {
+				State.queue = res.queue;
+				if ( State.summary ) { State.summary.library = res.library; State.summary.queue = res.queue; }
+				updateQueueViews();
+				if ( 'running' === res.queue.status ) { startDriving(); }
+			} ).catch( function () {} );
+		} );
 		renderShell();
 		// Si hay una cola en marcha al cargar, arranca el polling.
 		loadSummary().then( function ( res ) {

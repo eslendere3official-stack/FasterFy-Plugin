@@ -215,8 +215,18 @@ final class QueueManager implements Bootable {
 			'queue'
 		);
 
-		// El navegador conduce el proceso por lotes (run_batch). No dependemos
-		// de WP-Cron aquí, para garantizar fiabilidad en cualquier hosting.
+		// Motores de fondo (para que continúe aunque se cierre la pestaña):
+		//  1) Programa un lote por cron/Action Scheduler y fuerza su ejecución.
+		//  2) El worker loopback se dispara aparte (RestController).
+		//  3) El navegador acelera cuando está abierto.
+		// Todos comparten el mismo bloqueo, así que nunca duplican trabajo.
+		if ( 'rollback' !== $mode ) {
+			$this->enqueue_next_batch( 0 );
+			if ( function_exists( 'spawn_cron' ) ) {
+				spawn_cron();
+			}
+		}
+
 		return $state;
 	}
 
@@ -329,91 +339,23 @@ final class QueueManager implements Bootable {
 	public function process_batch(): void {
 		$state = $this->get_state();
 
-		if ( 'running' !== $state['status'] ) {
+		if ( 'running' !== ( $state['status'] ?? 'idle' ) ) {
 			return;
 		}
 
-		// Control de cuota: pausa si se agotaron los créditos.
-		if ( $this->is_quota_exhausted() ) {
-			$this->set_state( [ 'status' => 'exhausted' ] );
-			$this->logger->warning( __( 'Cola pausada: cuota de créditos agotada.', 'fasterfy' ), 'quota' );
-			return;
-		}
+		// Reutiliza run_batch: procesa un lote con bloqueo de concurrencia,
+		// presupuesto de tiempo y tope de rate-limit (misma lógica que el
+		// navegador y el worker loopback, sin duplicar trabajo gracias al lock).
+		$state = $this->run_batch();
 
-		$batch_size = (int) $this->settings->get( 'throttling.batch_size', 10 );
-		$mode       = (string) $state['mode'];
-		$overrides  = (array) $state['overrides'];
-
-		// Selecciona el conjunto de pendientes según el modo.
-		$ids = $this->pending_for_mode( $mode, $batch_size );
-
-		if ( empty( $ids ) ) {
-			$this->set_state( [ 'status' => 'completed' ] );
-			$this->logger->info( __( 'Procesamiento de la biblioteca completado.', 'fasterfy' ), 'queue' );
-			return;
-		}
-
-		$this->retry_after = 0;
-		$hit_rate_limit    = false;
-
-		foreach ( $ids as $id ) {
-			$outcome = $this->process_item( (int) $id, $mode, $overrides );
-
-			// Rate-limit del proveedor: corta el lote y reprograma con espera.
-			if ( 'retry' === $outcome ) {
-				$hit_rate_limit = true;
-				break;
+		// Si sigue en marcha, reprograma el siguiente lote (motor de fondo por
+		// cron/Action Scheduler). Así continúa aunque el navegador esté cerrado.
+		if ( 'running' === ( $state['status'] ?? 'idle' ) ) {
+			$delay = (int) ( $state['retry_after'] ?? 0 );
+			if ( $delay <= 0 ) {
+				$delay = (int) $this->settings->get( 'throttling.cooldown_seconds', 5 );
 			}
-
-			$state['processed'] = (int) $state['processed'] + 1;
-			if ( 'success' === $outcome ) {
-				$state['succeeded'] = (int) $state['succeeded'] + 1;
-			} elseif ( 'skipped' === $outcome ) {
-				$state['skipped'] = (int) $state['skipped'] + 1;
-			} else {
-				$state['failed'] = (int) $state['failed'] + 1;
-			}
-
-			// Marca el adjunto como procesado aunque falle, para no reintentar en bucle.
-			if ( 'fail' === $outcome ) {
-				update_post_meta( (int) $id, '_fasterfy_status', 'error' );
-			}
-		}
-
-		// Si se alcanzó el rate-limit, reprograma el siguiente lote con la espera
-		// sugerida por el proveedor y no toques los contadores como fallo.
-		if ( $hit_rate_limit ) {
-			$this->set_state(
-				[
-					'processed'   => $state['processed'],
-					'succeeded'   => $state['succeeded'],
-					'failed'      => $state['failed'],
-					'skipped'     => $state['skipped'],
-					'retry_after' => max( 5, $this->retry_after ),
-				]
-			);
-			$this->enqueue_next_batch( max( 5, $this->retry_after ) );
-			return;
-		}
-
-		$this->set_state(
-			[
-				'processed' => $state['processed'],
-				'succeeded' => $state['succeeded'],
-				'failed'    => $state['failed'],
-				'skipped'   => $state['skipped'],
-			]
-		);
-
-		// ¿Quedan pendientes? Programa el siguiente lote con cooldown.
-		$remaining = $this->count_for_mode( $mode );
-
-		if ( $remaining > 0 ) {
-			$cooldown = (int) $this->settings->get( 'throttling.cooldown_seconds', 5 );
-			$this->enqueue_next_batch( $cooldown );
-		} else {
-			$this->set_state( [ 'status' => 'completed' ] );
-			$this->logger->info( __( 'Procesamiento de la biblioteca completado.', 'fasterfy' ), 'queue' );
+			$this->enqueue_next_batch( max( 1, $delay ) );
 		}
 	}
 
