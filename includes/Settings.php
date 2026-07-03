@@ -44,8 +44,10 @@ final class Settings {
 				'keep_original'      => true,
 				// Calidad WebP (0-100, con pérdida).
 				'webp_quality'       => 80,
-				// Calidad AVIF (0-100). 80 ofrece un peso muy bajo con calidad excelente.
-				'avif_quality'       => 80,
+				// Calidad AVIF (0-100). 50 da archivos mucho más ligeros manteniendo
+				// una calidad visual excelente (AVIF es muy eficiente). Sube el valor
+				// si prefieres priorizar nitidez sobre peso.
+				'avif_quality'       => 50,
 				// Compresión PNG: 'lossless' o 'lossy' (cuantización de color).
 				'png_strategy'       => 'lossy',
 				// Convertir PNG a WebP/AVIF cuando ahorre más espacio (conserva alfa).
@@ -278,7 +280,7 @@ final class Settings {
 		$c['png_strategy']       = in_array( $c['png_strategy'], [ 'lossless', 'lossy' ], true ) ? $c['png_strategy'] : 'lossy';
 		$c['png_to_webp']        = (bool) ( $c['png_to_webp'] ?? true );
 		$c['webp_quality']       = self::clamp_int( $c['webp_quality'], 1, 100, 80 );
-		$c['avif_quality']       = self::clamp_int( $c['avif_quality'], 1, 100, 80 );
+		$c['avif_quality']       = self::clamp_int( $c['avif_quality'], 1, 100, 50 );
 		$c['jpeg_quality']       = self::clamp_int( $c['jpeg_quality'], 1, 100, 82 );
 		$c['png_max_colors']     = self::clamp_int( $c['png_max_colors'], 2, 256, 256 );
 		$c['max_width']          = self::clamp_int( $c['max_width'], 0, 12000, 2560 );

@@ -1,10 +1,10 @@
-=== FasterFy — AI Media Optimizer ===
+=== FasterFy — Pro Media Optimizer ===
 Contributors: fasterfy
 Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, performance, core web vitals
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.20
+Stable tag: 1.0.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ FasterFy actúa directamente sobre el sistema de archivos y la base de datos de 
 1. Copia la carpeta `fasterfy` en `wp-content/plugins/`.
 2. (Opcional) Ejecuta `composer install` dentro de la carpeta para cargar el autoloader optimizado. No es obligatorio: el plugin incluye su propio autoloader.
 3. (Recomendado) Instala el plugin "Action Scheduler" o WooCommerce para colas robustas.
-4. Activa **FasterFy — AI Media Optimizer** desde el menú Plugins.
+4. Activa **FasterFy — Pro Media Optimizer** desde el menú Plugins.
 5. Abre el menú **FasterFy** en el panel de administración.
 
 **Requisitos del servidor**
@@ -74,6 +74,10 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.21 =
+* Marca: el eslogan pasa a ser "Pro Media Optimizer" (panel, nombre del plugin y documentación).
+* Conversión: la calidad AVIF por defecto ahora es 50, que produce archivos mucho más ligeros manteniendo una calidad visual excelente. (En instalaciones existentes, ajusta el slider de Calidad AVIF a 50 una vez.)
 
 = 1.0.20 =
 * UX: la vista de detalle ahora se navega con las flechas ← → del teclado (y botones ‹ › en pantalla); Esc para cerrar.

@@ -1,4 +1,4 @@
-# FasterFy — AI Media Optimizer for WordPress
+# FasterFy — Pro Media Optimizer for WordPress
 
 > **Smart, automated, and non-destructive media optimization powered by multimodal AI**
 

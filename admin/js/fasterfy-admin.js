@@ -154,7 +154,7 @@
 			'<div class="ff-shell">' +
 				'<aside class="ff-sidebar">' +
 					'<div class="ff-brand">' + brandMark( 32 ) + '<span class="ff-brand__name">Faster<i>Fy</i></span></div>' +
-					'<div class="ff-brand__tag">AI Media Optimizer</div>' +
+					'<div class="ff-brand__tag">Pro Media Optimizer</div>' +
 					'<nav class="ff-nav">' + nav + '</nav>' +
 					'<div class="ff-sidebar__foot">' +
 						'<div class="ff-modeswitch" data-action="mode">' +
@@ -227,7 +227,7 @@
 		} ).join( '' );
 		return '<div class="ff-hero" id="ff-hero">' +
 			'<div class="ff-hero__left">' +
-				'<div class="ff-hero__brand">' + brandMark( 44 ) + '<div class="ff-hero__name">Faster<i>Fy</i><span>AI Media Optimizer</span></div></div>' +
+				'<div class="ff-hero__brand">' + brandMark( 44 ) + '<div class="ff-hero__name">Faster<i>Fy</i><span>Pro Media Optimizer</span></div></div>' +
 			'</div>' +
 			'<div class="ff-hero__right">' +
 				'<div class="ff-hero__slides">' + slides + '</div>' +
