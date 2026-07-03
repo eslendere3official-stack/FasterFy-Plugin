@@ -55,7 +55,7 @@
 		caps: DATA.capabilities || {},
 		summary: null,
 		queue: null,
-		media: { items: [], total: 0, page: 1, status: 'all', search: '', orderby: 'recent', selected: [], view: ( ( function () { try { return localStorage.getItem( 'fasterfy_media_view' ) || 'list'; } catch ( e ) { return 'list'; } } )() ), loading: false },
+		media: { items: [], total: 0, page: 1, status: 'all', search: '', orderby: 'recent', date: '', selected: [], view: ( ( function () { try { return localStorage.getItem( 'fasterfy_media_view' ) || 'list'; } catch ( e ) { return 'list'; } } )() ), loading: false },
 		logs: { items: [], total: 0, page: 1, loading: false },
 		polling: null,
 		driving: false,
@@ -376,12 +376,18 @@
 					'<button data-view="grid" class="' + ( 'grid' === State.media.view ? 'is-active' : '' ) + '">▦ Cuadrícula</button>' +
 				'</div>' +
 			'</div>' +
-			'<div class="ff-toolbar" style="justify-content:space-between;gap:10px">' +
-				'<input type="search" class="ff-input" id="ff-search" placeholder="🔍 Buscar por nombre…" value="' + h( State.media.search ) + '" style="max-width:320px">' +
-				'<select class="ff-select" id="ff-orderby" style="max-width:220px">' +
-					sortOpt( 'recent', 'Más recientes' ) + sortOpt( 'oldest', 'Más antiguas' ) +
-					sortOpt( 'savings', 'Mayor ahorro' ) + sortOpt( 'title', 'Nombre (A-Z)' ) + sortOpt( 'type', 'Tipo de archivo' ) +
-				'</select>' +
+			'<div class="ff-toolbar" style="justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+				'<input type="search" class="ff-input" id="ff-search" placeholder="🔍 Buscar por nombre…" value="' + h( State.media.search ) + '" style="max-width:280px">' +
+				'<div class="ff-row" style="gap:10px;flex-wrap:wrap">' +
+					'<select class="ff-select" id="ff-datefilter" style="max-width:210px" title="Mostrar solo imágenes subidas recientemente">' +
+						dateOpt( '', '📅 Cualquier fecha' ) + dateOpt( '24h', 'Subidas hoy (24 h)' ) +
+						dateOpt( '7d', 'Últimos 7 días' ) + dateOpt( '30d', 'Últimos 30 días' ) +
+					'</select>' +
+					'<select class="ff-select" id="ff-orderby" style="max-width:210px">' +
+						sortOpt( 'recent', 'Últimas añadidas' ) + sortOpt( 'oldest', 'Más antiguas' ) +
+						sortOpt( 'savings', 'Mayor ahorro' ) + sortOpt( 'title', 'Nombre (A-Z)' ) + sortOpt( 'type', 'Tipo de archivo' ) +
+					'</select>' +
+				'</div>' +
 			'</div>' +
 			'<div class="ff-card"><div id="ff-media-table"></div></div>';
 		loadMedia();
@@ -425,6 +431,9 @@
 
 	function sortOpt( v, label ) {
 		return '<option value="' + v + '"' + ( State.media.orderby === v ? ' selected' : '' ) + '>' + label + '</option>';
+	}
+	function dateOpt( v, label ) {
+		return '<option value="' + v + '"' + ( State.media.date === v ? ' selected' : '' ) + '>' + label + '</option>';
 	}
 
 	/** Consulta el estado de la cola y pinta la barra de progreso de la Biblioteca. */
@@ -484,7 +493,8 @@
 	function mediaTopBar() {
 		var n = State.media.selected.length;
 		var aiOn = State.settings.ai && State.settings.ai.enabled;
-		var left = '<label class="ff-selall"><input type="checkbox" class="ff-check" data-action="select-all"' + ( allPageSelected() ? ' checked' : '' ) + '> Seleccionar todo' + ( n ? ' · ' + n + ' elegida(s)' : '' ) + '</label>';
+		var left = '<label class="ff-selall"><input type="checkbox" class="ff-check" data-action="select-all"' + ( allPageSelected() ? ' checked' : '' ) + '> Seleccionar todo' + ( n ? ' · ' + n + ' elegida(s)' : '' ) + '</label>' +
+			'<span class="ff-muted" style="font-size:12px">Toca una tarjeta para seleccionarla · usa <b>Detalles</b> para ver la ficha</span>';
 		var right = '';
 		if ( n ) {
 			right = '<button class="ff-btn ff-btn--sm ff-btn--primary" data-action="sel-optimize">⚡ Optimizar</button>';
@@ -692,9 +702,12 @@
 
 	/** Tarjeta de un elemento para la vista en cuadrícula. */
 	function mediaCard( it ) {
-		return '<div class="ff-mcard' + ( isSelected( it.id ) ? ' is-selected' : '' ) + '">' +
-			'<div class="ff-mcard__thumb"><label class="ff-mcard__check">' + selCheck( it ) + '</label>' +
-				'<img data-action="detail" data-id="' + it.id + '" style="cursor:pointer" src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></div>' +
+		// Toda la tarjeta es seleccionable (data-action="card-select"). Los botones
+		// internos tienen su propia acción, así que no interfieren. Para abrir la
+		// ficha se usa el botón "Detalles".
+		return '<div class="ff-mcard ff-mcard--pick' + ( isSelected( it.id ) ? ' is-selected' : '' ) + '" data-action="card-select" data-id="' + it.id + '">' +
+			'<div class="ff-mcard__thumb"><span class="ff-mcard__check">' + selCheck( it ) + '</span>' +
+				'<img src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></div>' +
 			'<div class="ff-mcard__body">' +
 				'<div class="ff-row" style="gap:6px;flex-wrap:wrap">' +
 					'<span class="ff-badge ff-badge--' + it.status + '">' + h( it.status ) + '</span>' + aiBadge( it ) +
@@ -731,9 +744,9 @@
 		// Vista en lista (tabla).
 		var rows = State.media.items.map( function ( it ) {
 			var badge = '<span class="ff-badge ff-badge--' + it.status + '">' + h( it.status ) + '</span>';
-			return '<tr data-row="' + it.id + '"' + ( isSelected( it.id ) ? ' class="is-selected"' : '' ) + '>' +
+			return '<tr data-action="card-select" data-id="' + it.id + '" class="ff-row-pick' + ( isSelected( it.id ) ? ' is-selected' : '' ) + '">' +
 				'<td>' + selCheck( it ) + '</td>' +
-				'<td><img class="ff-thumb" data-action="detail" data-id="' + it.id + '" style="cursor:pointer" src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></td>' +
+				'<td><img class="ff-thumb" src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></td>' +
 				'<td><b>#' + it.id + '</b><br><span class="ff-muted">' + h( it.mime ) + '</span></td>' +
 				'<td>' + badge + ( it.format_to ? '<br><span class="ff-muted" style="font-size:11px">' + h( it.format_to ) + '</span>' : '' ) + '</td>' +
 				'<td>' + ( it.saved_bytes ? '<b style="color:var(--ff-accent)">' + bytes( it.saved_bytes ) + '</b>' : '<span class="ff-muted">—</span>' ) + '</td>' +
@@ -1074,7 +1087,7 @@
 	function loadMedia() {
 		State.media.loading = true;
 		renderMediaTable();
-		return Api.get( '/media?status=' + State.media.status + '&page=' + State.media.page + '&per_page=24&orderby=' + encodeURIComponent( State.media.orderby ) + '&search=' + encodeURIComponent( State.media.search ) )
+		return Api.get( '/media?status=' + State.media.status + '&page=' + State.media.page + '&per_page=24&orderby=' + encodeURIComponent( State.media.orderby ) + '&search=' + encodeURIComponent( State.media.search ) + '&date=' + encodeURIComponent( State.media.date ) )
 			.then( function ( res ) {
 				State.media.items = res.items;
 				State.media.total = res.total;
@@ -1294,6 +1307,13 @@
 			case 'rollback-one':
 				itemAction( actionEl, '/rollback', { id: +actionEl.getAttribute( 'data-id' ) }, 'Revertido al original' );
 				break;
+			case 'card-select':
+				var pickId = +actionEl.getAttribute( 'data-id' );
+				var pickIdx = State.media.selected.indexOf( pickId );
+				if ( pickIdx >= 0 ) { State.media.selected.splice( pickIdx, 1 ); }
+				else { State.media.selected.push( pickId ); }
+				renderMediaTable();
+				break;
 			case 'select':
 				var cb = e.target.closest( '[data-action="select"]' );
 				if ( cb ) {
@@ -1416,6 +1436,11 @@
 		}
 		if ( 'ff-orderby' === el.id ) {
 			State.media.orderby = el.value;
+			State.media.page = 1;
+			loadMedia();
+		}
+		if ( 'ff-datefilter' === el.id ) {
+			State.media.date = el.value;
 			State.media.page = 1;
 			loadMedia();
 		}

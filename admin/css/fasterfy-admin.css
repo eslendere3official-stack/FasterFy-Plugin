@@ -553,3 +553,18 @@ html.wp-toolbar { background: #141414; }
 	display: flex; align-items: center; gap: 8px; text-align: left;
 }
 .ff-procmodal__tip span { transition: opacity .25s ease; }
+
+
+
+/* ============================================================
+ * v1.0.26 — Selección por tarjeta/fila completa
+ * ============================================================ */
+.ff-mcard--pick { cursor: pointer; }
+.ff-mcard--pick:hover { border-color: var(--ff-primary); box-shadow: 0 0 0 2px rgba( 51, 238, 51, 0.18 ); }
+.ff-mcard--pick.is-selected { border-color: var(--ff-primary); box-shadow: 0 0 0 2px var(--ff-primary); }
+.ff-row-pick { cursor: pointer; }
+.ff-row-pick:hover { background: var(--ff-surface); }
+/* Evita que el texto se seleccione al hacer clics rápidos para marcar. */
+.ff-mcard--pick, .ff-row-pick { user-select: none; }
+/* La miniatura ya no abre el detalle al clic; se usa el botón "Detalles". */
+.ff-mcard__thumb img, .ff-thumb { cursor: pointer; }

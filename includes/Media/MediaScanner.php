@@ -450,6 +450,7 @@ final class MediaScanner {
 		$status     = (string) ( $args['status'] ?? 'all' );
 		$search     = trim( (string) ( $args['search'] ?? '' ) );
 		$orderby    = (string) ( $args['orderby'] ?? 'recent' );
+		$date       = (string) ( $args['date'] ?? '' );
 		$display_in = $this->display_in_clause();
 
 		$joins  = "LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_fasterfy_status'";
@@ -475,6 +476,15 @@ final class MediaScanner {
 		} elseif ( 'ai_pending' === $status ) {
 			// "Sin texto": la imagen NO tiene texto alternativo.
 			$where .= " AND ( alt.meta_value IS NULL OR TRIM( alt.meta_value ) = '' )";
+		}
+
+		// Filtro por fecha de subida: aísla las imágenes recién añadidas para no
+		// mezclarlas con las antiguas (y poder aplicar acciones solo a las nuevas).
+		$days_map = [ '24h' => 1, '7d' => 7, '30d' => 30 ];
+		if ( isset( $days_map[ $date ] ) ) {
+			$cutoff   = gmdate( 'Y-m-d H:i:s', time() - ( $days_map[ $date ] * DAY_IN_SECONDS ) );
+			$where   .= ' AND p.post_date_gmt >= %s';
+			$params[] = $cutoff;
 		}
 
 		if ( '' !== $search ) {

@@ -166,6 +166,7 @@ final class RestController implements Bootable {
 				'status'   => (string) $request->get_param( 'status' ),
 				'search'   => (string) $request->get_param( 'search' ),
 				'orderby'  => (string) $request->get_param( 'orderby' ),
+				'date'     => (string) $request->get_param( 'date' ),
 			]
 		);
 		return $this->ok( $listing );

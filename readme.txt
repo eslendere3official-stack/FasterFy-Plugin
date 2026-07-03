@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.25
+Stable tag: 1.0.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,10 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.26 =
+* Biblioteca: nuevo filtro por fecha de subida (Cualquier fecha / Hoy / 7 días / 30 días) para aislar las imágenes recién añadidas y no mezclarlas con las antiguas. El orden "Más recientes" pasa a llamarse "Últimas añadidas".
+* Biblioteca: ahora se puede seleccionar una imagen tocando toda la tarjeta o fila (no solo el checkbox). Para abrir la ficha detallada se usa el botón "Detalles".
 
 = 1.0.25 =
 * Filtros de biblioteca más intuitivos: "Con texto SEO" y "Sin texto" ahora se basan en si la imagen tiene realmente texto alternativo (no en un estado interno), corrigiendo que una imagen con texto pudiera aparecer en "Sin texto".
