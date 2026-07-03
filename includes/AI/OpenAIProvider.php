@@ -117,7 +117,10 @@ final class OpenAIProvider implements AIProvider {
 		$body = [
 			'model'       => $model,
 			'temperature' => $temperature,
-			'max_tokens'  => 400,
+			// Presupuesto amplio: los modelos "thinking" (p. ej. Gemini 2.5)
+			// consumen tokens razonando ANTES de responder; un límite bajo
+			// truncaba el JSON o lo dejaba vacío.
+			'max_tokens'  => 1500,
 			'messages'    => [
 				[
 					'role'    => 'system',
@@ -141,6 +144,16 @@ final class OpenAIProvider implements AIProvider {
 			'response_format' => [ 'type' => 'json_object' ],
 		];
 
+		// Los modelos Gemini 2.5 razonan ("thinking") y ese razonamiento consume
+		// el presupuesto de tokens de salida, truncando o vaciando la respuesta.
+		// Para una descripción factual no necesitamos razonamiento: lo desactivamos
+		// vía el parámetro que expone la capa OpenAI-compatible de Google.
+		// (Solo se envía a endpoints de Google para no romper OpenAI, que rechaza
+		// parámetros desconocidos.)
+		if ( $this->is_gemini( $model ) ) {
+			$body['reasoning_effort'] = 'none';
+		}
+
 		$response = wp_remote_post(
 			$this->endpoint( '/chat/completions' ),
 			[
@@ -162,11 +175,26 @@ final class OpenAIProvider implements AIProvider {
 			return VisionResult::fail( (string) $msg );
 		}
 
-		$content = $raw['choices'][0]['message']['content'] ?? '';
-		$parsed  = $this->parse_content( (string) $content );
+		$content       = $raw['choices'][0]['message']['content'] ?? '';
+		$finish_reason = $raw['choices'][0]['finish_reason'] ?? '';
+		$parsed        = $this->parse_content( (string) $content );
 
 		if ( '' === $parsed['alt'] ) {
-			return VisionResult::fail( __( 'El modelo no devolvió una descripción utilizable.', 'fasterfy' ) );
+			// Incluye pistas útiles: motivo de finalización (p. ej. "length" =
+			// truncado por tokens) y un fragmento de la respuesta cruda.
+			$hint = '';
+			if ( 'length' === $finish_reason ) {
+				$hint = ' ' . __( '(respuesta truncada por límite de tokens)', 'fasterfy' );
+			}
+			$snippet = trim( mb_substr( (string) $content, 0, 120 ) );
+			return VisionResult::fail(
+				sprintf(
+					/* translators: 1: pista, 2: fragmento de respuesta */
+					__( 'El modelo no devolvió una descripción utilizable.%1$s Respuesta: %2$s', 'fasterfy' ),
+					$hint,
+					'' !== $snippet ? $snippet : '(vacía)'
+				)
+			);
 		}
 
 		return VisionResult::ok(
@@ -250,6 +278,21 @@ final class OpenAIProvider implements AIProvider {
 	}
 
 	/**
+	 * Determina si el proveedor configurado es Google Gemini (por endpoint o
+	 * por nombre de modelo). Se usa para aplicar parámetros específicos de
+	 * Google que OpenAI no admite.
+	 *
+	 * @param string $model Nombre del modelo.
+	 * @return bool
+	 */
+	private function is_gemini( string $model ): bool {
+		$base = (string) $this->settings->get( 'ai.api_base', '' );
+		return false !== stripos( $base, 'generativelanguage.googleapis.com' )
+			|| false !== stripos( $base, 'gemini' )
+			|| 0 === stripos( $model, 'gemini' );
+	}
+
+	/**
 	 * Prepara una copia de la imagen apta para modelos de visión: la reencodea a
 	 * JPEG (universalmente soportado; AVIF/otros no siempre lo están) y la
 	 * redimensiona para limitar el tamaño del envío.
@@ -324,11 +367,19 @@ final class OpenAIProvider implements AIProvider {
 	 * @return array{alt: string, title: string, keywords: string}
 	 */
 	private function parse_content( string $content ): array {
-		$out = [ 'alt' => '', 'title' => '', 'description' => '', 'keywords' => '' ];
+		$out     = [ 'alt' => '', 'title' => '', 'description' => '', 'keywords' => '' ];
+		$content = trim( $content );
+
+		// Algunos modelos envuelven el JSON en cercas de código markdown
+		// (```json ... ```). Las eliminamos antes de decodificar.
+		if ( false !== strpos( $content, '```' ) ) {
+			$content = (string) preg_replace( '/```(?:json)?/i', '', $content );
+			$content = trim( $content );
+		}
 
 		$json = json_decode( $content, true );
 		if ( ! is_array( $json ) ) {
-			// Intenta extraer un bloque JSON embebido.
+			// Intenta extraer el bloque JSON más largo (de la primera { a la última }).
 			if ( preg_match( '/\{.*\}/s', $content, $m ) ) {
 				$json = json_decode( $m[0], true );
 			}
@@ -339,11 +390,44 @@ final class OpenAIProvider implements AIProvider {
 			$out['title']       = sanitize_text_field( (string) ( $json['title'] ?? '' ) );
 			$out['description'] = sanitize_text_field( (string) ( $json['description'] ?? '' ) );
 			$out['keywords']    = sanitize_text_field( (string) ( $json['keywords'] ?? '' ) );
-		} else {
-			// Respaldo: usa el texto como alt.
+			return $out;
+		}
+
+		// El JSON llegó incompleto/truncado y no se pudo decodificar. Recuperamos
+		// los pares "clave": "valor" individuales que sí estén completos.
+		$salvaged = $this->salvage_pairs( $content );
+		if ( ! empty( $salvaged ) ) {
+			$out['alt']         = sanitize_text_field( $salvaged['alt'] ?? '' );
+			$out['title']       = sanitize_text_field( $salvaged['title'] ?? '' );
+			$out['description'] = sanitize_text_field( $salvaged['description'] ?? '' );
+			$out['keywords']    = sanitize_text_field( $salvaged['keywords'] ?? '' );
+			return $out;
+		}
+
+		// Último recurso: usa el texto plano como alt, pero solo si no parece
+		// un fragmento de JSON (evita guardar '{' o '{ "alt":...' como texto).
+		if ( '' !== $content && '{' !== $content[0] ) {
 			$out['alt'] = sanitize_text_field( $content );
 		}
 
+		return $out;
+	}
+
+	/**
+	 * Extrae pares "clave": "valor" de un JSON posiblemente truncado. Cada valor
+	 * se recupera solo si su comilla de cierre existe, tolerando comillas
+	 * escapadas dentro del texto.
+	 *
+	 * @param string $content Contenido crudo.
+	 * @return array<string, string>
+	 */
+	private function salvage_pairs( string $content ): array {
+		$out = [];
+		foreach ( [ 'alt', 'title', 'description', 'keywords' ] as $key ) {
+			if ( preg_match( '/"' . $key . '"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/', $content, $m ) ) {
+				$out[ $key ] = stripslashes( $m[1] );
+			}
+		}
 		return $out;
 	}
 

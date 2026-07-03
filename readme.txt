@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.0
+Stable tag: 1.0.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,12 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.18 =
+* IA (fix importante): los modelos "thinking" como Gemini 2.5 Flash consumían el presupuesto de tokens razonando y devolvían el JSON truncado o vacío; ahora se desactiva el razonamiento en endpoints de Google y se amplía el límite de tokens (400 → 1500). El texto generado (alt, título, descripción, keywords) vuelve a aplicarse correctamente.
+* IA: parser de respuesta más robusto — tolera JSON envuelto en markdown (```json), recupera pares clave/valor de respuestas truncadas y evita guardar fragmentos de JSON como alt text.
+* IA: mensajes de error más útiles (incluye motivo de finalización y un fragmento de la respuesta del modelo) para diagnóstico.
+* Diagnóstico: nuevos endpoints REST (/diagnostic/ai y /diagnostic/ai/connection) y guías de troubleshooting.
 
 = 1.0.17 =
 * Rendimiento rediseñado: tarjetas KPI, donut animado de progreso, gráfico de composición por tipo de archivo y comparativa antes/después con barras animadas y métricas de ROI.
