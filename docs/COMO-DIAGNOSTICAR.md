@@ -19,65 +19,57 @@ La forma más rápida es usar los endpoints de diagnóstico que acabamos de aña
 
 Copia y pega este código en la consola:
 
+> **IMPORTANTE**: Debes estar en la página del panel de FasterFy (WordPress Admin → menú
+> FasterFy), NO en el editor de Elementor ni en otra página. El script usa la variable
+> `FasterFyData` que solo existe dentro del panel del plugin.
+
 ```javascript
-fetch('/wp-json/fasterfy/v1/diagnostic/ai', {
-  headers: { 'X-WP-Nonce': window.fasterfy.nonce }
-})
-.then(r => r.json())
-.then(report => {
-  console.log('=== REPORTE DE DIAGNÓSTICO ===');
-  console.log('');
-  
-  // IA Habilitada
-  console.log(`🔧 IA Habilitada: ${report.ai_enabled.status === 'ok' ? '✅' : '❌'}`);
-  console.log(`   ${report.ai_enabled.message}`);
-  console.log('');
-  
-  // API Key
-  console.log(`🔑 API Key: ${report.api_key.status === 'ok' ? '✅' : '❌'}`);
-  console.log(`   ${report.api_key.message}`);
-  console.log('');
-  
-  // URL Base
-  console.log(`🌐 URL Base: ${report.api_base.status === 'ok' ? '✅' : '⚠️'}`);
-  console.log(`   ${report.api_base.message}`);
-  console.log('');
-  
-  // Modelo
-  console.log(`🤖 Modelo: ${report.vision_model.status === 'ok' ? '✅' : '⚠️'}`);
-  console.log(`   ${report.vision_model.message}`);
-  console.log('');
-  
-  // Idioma
-  console.log(`🌍 Idioma: ${report.language.value}`);
-  console.log('');
-  
-  // Temperatura
-  console.log(`🌡️ Temperatura: ${report.temperature.status === 'ok' ? '✅' : '⚠️'}`);
-  console.log(`   ${report.temperature.message}`);
-  console.log('');
-  
-  // Opciones de generación
-  console.log(`📝 Opciones de Generación: ${report.generation_options.status === 'ok' ? '✅' : '⚠️'}`);
-  console.log(`   - Generar Alt: ${report.generation_options.generate_alt ? 'SÍ' : 'NO'}`);
-  console.log(`   - Generar Título: ${report.generation_options.generate_title ? 'SÍ' : 'NO'}`);
-  console.log(`   - Generar Descripción: ${report.generation_options.generate_description ? 'SÍ' : 'NO'}`);
-  console.log(`   - Renombrado Semántico: ${report.generation_options.semantic_rename ? 'SÍ' : 'NO'}`);
-  console.log('');
-  
-  // Moderación
-  console.log(`🛡️ Moderación: ${report.moderation.enabled ? 'Habilitada' : 'Deshabilitada'}`);
-  console.log('');
-  
-  // Estado General
-  console.log(`📊 ESTADO GENERAL: ${report.overall.status === 'ok' ? '✅ LISTO' : '❌ CONFIGURACIÓN INCOMPLETA'}`);
-  console.log(`   ${report.overall.message}`);
-  console.log('');
-  
-  // Reporte completo (para copiar y pegar si reportas un bug)
-  console.log('=== REPORTE COMPLETO (JSON) ===');
-  console.log(JSON.stringify(report, null, 2));
-});
+(function () {
+  if (typeof FasterFyData === 'undefined') {
+    console.error('❌ No estás en el panel de FasterFy.');
+    console.error('   Ve a WordPress Admin → menú FasterFy y ejecuta el script AHÍ.');
+    return;
+  }
+  fetch(FasterFyData.restUrl + '/diagnostic/ai', {
+    headers: { 'X-WP-Nonce': FasterFyData.nonce }
+  })
+  .then(r => r.json())
+  .then(report => {
+    console.log('=== REPORTE DE DIAGNÓSTICO ===');
+    console.log('');
+    console.log(`🔧 IA Habilitada: ${report.ai_enabled.status === 'ok' ? '✅' : '❌'}`);
+    console.log(`   ${report.ai_enabled.message}`);
+    console.log('');
+    console.log(`🔑 API Key: ${report.api_key.status === 'ok' ? '✅' : '❌'}`);
+    console.log(`   ${report.api_key.message}`);
+    console.log('');
+    console.log(`🌐 URL Base: ${report.api_base.status === 'ok' ? '✅' : '⚠️'}`);
+    console.log(`   ${report.api_base.message}`);
+    console.log('');
+    console.log(`🤖 Modelo: ${report.vision_model.status === 'ok' ? '✅' : '⚠️'}`);
+    console.log(`   ${report.vision_model.message}`);
+    console.log('');
+    console.log(`🌍 Idioma: ${report.language.value}`);
+    console.log('');
+    console.log(`🌡️ Temperatura: ${report.temperature.status === 'ok' ? '✅' : '⚠️'}`);
+    console.log(`   ${report.temperature.message}`);
+    console.log('');
+    console.log(`📝 Opciones de Generación: ${report.generation_options.status === 'ok' ? '✅' : '⚠️'}`);
+    console.log(`   - Generar Alt: ${report.generation_options.generate_alt ? 'SÍ' : 'NO'}`);
+    console.log(`   - Generar Título: ${report.generation_options.generate_title ? 'SÍ' : 'NO'}`);
+    console.log(`   - Generar Descripción: ${report.generation_options.generate_description ? 'SÍ' : 'NO'}`);
+    console.log(`   - Renombrado Semántico: ${report.generation_options.semantic_rename ? 'SÍ' : 'NO'}`);
+    console.log('');
+    console.log(`🛡️ Moderación: ${report.moderation.enabled ? 'Habilitada' : 'Deshabilitada'}`);
+    console.log('');
+    console.log(`📊 ESTADO GENERAL: ${report.overall.status === 'ok' ? '✅ LISTO' : '❌ CONFIGURACIÓN INCOMPLETA'}`);
+    console.log(`   ${report.overall.message}`);
+    console.log('');
+    console.log('=== REPORTE COMPLETO (JSON) ===');
+    console.log(JSON.stringify(report, null, 2));
+  })
+  .catch(err => console.error('❌ Error al llamar al diagnóstico:', err));
+})();
 ```
 
 ### Paso 3: Lee el Resultado
@@ -125,27 +117,36 @@ La consola mostrará algo como esto:
 Si el paso anterior salió todo ✅, ahora prueba si puedes conectarte realmente al proveedor de IA:
 
 ```javascript
-fetch('/wp-json/fasterfy/v1/diagnostic/ai/connection', {
-  headers: { 'X-WP-Nonce': window.fasterfy.nonce }
-})
-.then(r => r.json())
-.then(result => {
-  console.log('=== PRUEBA DE CONEXIÓN ===');
-  console.log('');
-  console.log(`Estado: ${result.ok ? '✅ CONECTADO' : '❌ FALLO'}`);
-  console.log(`Mensaje: ${result.message}`);
-  console.log('');
-  console.log('Detalles:');
-  console.log(`  API Base: ${result.details.api_base}`);
-  console.log(`  Modelo: ${result.details.vision_model}`);
-  console.log(`  Endpoint probado: ${result.details.test_endpoint}`);
-  console.log('');
-  if (!result.ok) {
-    console.error('⚠️ PROBLEMA DETECTADO:');
-    console.error('La API Key o el endpoint pueden ser incorrectos.');
-    console.error('Revisa docs/DIAGNOSTICO-IA.md para más ayuda.');
+(function () {
+  if (typeof FasterFyData === 'undefined') {
+    console.error('❌ No estás en el panel de FasterFy. Ve a WordPress Admin → menú FasterFy.');
+    return;
   }
-});
+  fetch(FasterFyData.restUrl + '/diagnostic/ai/connection', {
+    headers: { 'X-WP-Nonce': FasterFyData.nonce }
+  })
+  .then(r => r.json())
+  .then(result => {
+    console.log('=== PRUEBA DE CONEXIÓN ===');
+    console.log('');
+    console.log(`Estado: ${result.ok ? '✅ CONECTADO' : '❌ FALLO'}`);
+    console.log(`Mensaje: ${result.message}`);
+    console.log('');
+    if (result.details) {
+      console.log('Detalles:');
+      console.log(`  API Base: ${result.details.api_base}`);
+      console.log(`  Modelo: ${result.details.vision_model}`);
+      console.log(`  Endpoint probado: ${result.details.test_endpoint}`);
+      console.log('');
+    }
+    if (!result.ok) {
+      console.error('⚠️ PROBLEMA DETECTADO:');
+      console.error('La API Key o el endpoint pueden ser incorrectos.');
+      console.error('Revisa docs/DIAGNOSTICO-IA.md para más ayuda.');
+    }
+  })
+  .catch(err => console.error('❌ Error al probar la conexión:', err));
+})();
 ```
 
 **Resultado esperado:**

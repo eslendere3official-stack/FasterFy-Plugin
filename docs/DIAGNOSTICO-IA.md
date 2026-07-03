@@ -121,8 +121,9 @@ Respuesta esperada:
 Abre FasterFy en tu navegador, abre la Consola de JavaScript (F12), y ejecuta:
 
 ```javascript
-fetch('/wp-json/fasterfy/v1/health/ai', {
-  headers: { 'X-WP-Nonce': window.fasterfy.nonce }
+// Ejecutar dentro del panel de FasterFy (WordPress Admin → FasterFy)
+fetch(FasterFyData.restUrl + '/diagnostic/ai/connection', {
+  headers: { 'X-WP-Nonce': FasterFyData.nonce }
 })
 .then(r => r.json())
 .then(console.log);
