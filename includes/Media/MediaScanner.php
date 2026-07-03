@@ -454,6 +454,8 @@ final class MediaScanner {
 
 		$joins  = "LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_fasterfy_status'";
 		$joins .= " LEFT JOIN {$wpdb->postmeta} ai ON ai.post_id = p.ID AND ai.meta_key = '_fasterfy_ai_status'";
+		// Texto alternativo real del adjunto: base de los filtros "con/sin texto".
+		$joins .= " LEFT JOIN {$wpdb->postmeta} alt ON alt.post_id = p.ID AND alt.meta_key = '_wp_attachment_image_alt'";
 		$where  = "p.post_type = 'attachment' AND p.post_mime_type IN ({$display_in})";
 		$params = [];
 
@@ -464,14 +466,15 @@ final class MediaScanner {
 		} elseif ( 'optimized' === $status ) {
 			$where .= " AND m.meta_value = 'optimized'";
 		} elseif ( 'ai_done' === $status ) {
-			// IA aplicada correctamente.
-			$where .= " AND ai.meta_value = 'done'";
+			// "Con texto SEO": la imagen TIENE texto alternativo (lo haya puesto
+			// FasterFy o el usuario). Es lo que el usuario percibe como "con texto".
+			$where .= " AND alt.meta_value IS NOT NULL AND TRIM( alt.meta_value ) <> ''";
 		} elseif ( 'ai_error' === $status ) {
-			// IA con error permanente (tras agotar reintentos reales).
+			// Texto con error permanente (tras agotar reintentos reales).
 			$where .= " AND ai.meta_value = 'error'";
 		} elseif ( 'ai_pending' === $status ) {
-			// Falta generar texto de IA (nunca hecho, pospuesto o en error).
-			$where .= " AND ( ai.meta_value IS NULL OR ai.meta_value NOT IN ( 'done', 'blocked' ) )";
+			// "Sin texto": la imagen NO tiene texto alternativo.
+			$where .= " AND ( alt.meta_value IS NULL OR TRIM( alt.meta_value ) = '' )";
 		}
 
 		if ( '' !== $search ) {
