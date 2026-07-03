@@ -15,6 +15,7 @@ use FasterFy\Media\BackupManager;
 use FasterFy\Media\MediaScanner;
 use FasterFy\Media\UploadInterceptor;
 use FasterFy\Processors\ProcessorFactory;
+use FasterFy\Queue\BackgroundWorker;
 use FasterFy\Queue\QueueManager;
 use FasterFy\Rest\RestController;
 
@@ -118,6 +119,11 @@ final class Core {
 			$this->services['backup'],
 			$this->services['ai']
 		);
+		$this->services['worker']   = new BackgroundWorker(
+			$this->services['queue'],
+			$settings,
+			$logger
+		);
 		$this->services['rest']     = new RestController( $this );
 		$this->services['upload']   = new UploadInterceptor( $this );
 		$this->services['admin']    = new Admin( $this );
@@ -181,5 +187,10 @@ final class Core {
 	public function queue(): QueueManager {
 		/** @var QueueManager */
 		return $this->services['queue'];
+	}
+
+	public function worker(): BackgroundWorker {
+		/** @var BackgroundWorker */
+		return $this->services['worker'];
 	}
 }

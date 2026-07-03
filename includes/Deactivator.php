@@ -34,6 +34,11 @@ final class Deactivator {
 		}
 		wp_clear_scheduled_hook( 'fasterfy_process_batch' );
 
+		// Limpia el vigilante del worker en segundo plano.
+		wp_clear_scheduled_hook( 'fasterfy_worker_watch' );
+		wp_clear_scheduled_hook( 'fasterfy_worker_resume' );
+		delete_option( 'fasterfy_worker_token' );
+
 		delete_transient( 'fasterfy_scan_cache' );
 
 		flush_rewrite_rules();

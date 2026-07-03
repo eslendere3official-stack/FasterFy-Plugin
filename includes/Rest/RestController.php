@@ -316,6 +316,8 @@ final class RestController implements Bootable {
 	public function queue_start( WP_REST_Request $request ): WP_REST_Response {
 		$mode  = (string) ( $request->get_param( 'mode' ) ?: 'both' );
 		$state = $this->core->queue()->start( [ 'mode' => $mode ] );
+		// Lanza el procesamiento en segundo plano (continúa aunque se cierre la pestaña).
+		$this->core->worker()->dispatch();
 		return $this->ok( [ 'queue' => $state ] );
 	}
 
@@ -334,7 +336,9 @@ final class RestController implements Bootable {
 	}
 
 	public function queue_resume(): WP_REST_Response {
-		return $this->ok( [ 'queue' => $this->core->queue()->resume() ] );
+		$state = $this->core->queue()->resume();
+		$this->core->worker()->dispatch();
+		return $this->ok( [ 'queue' => $state ] );
 	}
 
 	public function queue_cancel(): WP_REST_Response {

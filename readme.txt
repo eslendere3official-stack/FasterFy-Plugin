@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.22
+Stable tag: 1.0.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,11 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.23 =
+* Procesamiento en segundo plano REAL: el trabajo por lotes ahora continúa en el servidor aunque cierres la pestaña o navegues a otra parte de WordPress. Se implementa con un worker que se auto-encadena mediante peticiones loopback no bloqueantes, más un vigilante (watchdog) por WP-Cron que reanuda la cadena si se corta. No requiere WooCommerce ni Action Scheduler.
+* El navegador, cuando está abierto, sigue acelerando el proceso (coordinado por un bloqueo para no duplicar trabajo).
+* Se retira el aviso de "no cierres la pestaña": ahora se informa que el proceso continúa en segundo plano.
 
 = 1.0.22 =
 * Fiabilidad: si el proveedor de textos limita las peticiones de forma sostenida (posible cuota diaria agotada), la cola ya no espera indefinidamente en "ritmo ajustado": se pausa tras varios ciclos y avisa con un mensaje claro para reanudar más tarde.

@@ -402,7 +402,7 @@
 			// activa, también genera textos) + revertir. Máxima simplicidad.
 			btns = '<button class="ff-btn ff-btn--primary ff-btn--lg" data-action="start-queue" data-mode="' + ( aiOn ? 'both' : 'optimize' ) + '">✨ Optimizar todo' + ( aiOn ? ' + textos' : '' ) + '</button>';
 			btns += '<button class="ff-btn ff-btn--danger" data-action="start-queue" data-mode="rollback">↩ Revertir todo</button>';
-			hint = 'Modo simple: un clic optimiza toda tu biblioteca' + ( aiOn ? ' y genera los textos SEO' : '' ) + '. Cambia a <b>Pro</b> para acciones separadas y control por estado.';
+			hint = 'Modo simple: un clic optimiza toda tu biblioteca' + ( aiOn ? ' y genera los textos SEO' : '' ) + '. El proceso continúa en segundo plano aunque cierres la pestaña. Cambia a <b>Pro</b> para acciones separadas y control por estado.';
 		} else {
 			// Pro: acciones granulares + gestión de reintentos.
 			btns = '<button class="ff-btn ff-btn--primary" data-action="start-queue" data-mode="optimize">⚡ Optimizar todo</button>';
@@ -411,7 +411,7 @@
 				btns += '<button class="ff-btn ff-btn--ghost" data-action="ai-reset-failed" title="Reintentar las imágenes cuyo texto SEO falló">🔁 Reintentar fallidas</button>';
 			}
 			btns += '<button class="ff-btn ff-btn--danger" data-action="start-queue" data-mode="rollback">↩ Revertir todo</button>';
-			hint = 'Modo Pro: control total. Aplica cada acción por separado a toda la biblioteca, por lotes.';
+			hint = 'Modo Pro: control total. Aplica cada acción por separado a toda la biblioteca, por lotes. El proceso continúa en segundo plano aunque cierres la pestaña.';
 		}
 
 		return '<div class="ff-card ff-card--pad-lg" style="margin-bottom:18px">' +
@@ -1370,15 +1370,6 @@
 		app.addEventListener( 'click', onClick );
 		app.addEventListener( 'input', onInput );
 		document.addEventListener( 'keydown', onKeydown );
-		// Advierte si intenta cerrar/cambiar de página con un lote en marcha
-		// (el procesamiento lo conduce el navegador; si sale, se pausa).
-		window.addEventListener( 'beforeunload', function ( e ) {
-			if ( State.driving ) {
-				e.preventDefault();
-				e.returnValue = '';
-				return '';
-			}
-		} );
 		renderShell();
 		// Si hay una cola en marcha al cargar, arranca el polling.
 		loadSummary().then( function ( res ) {
