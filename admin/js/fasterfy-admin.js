@@ -59,7 +59,10 @@
 		logs: { items: [], total: 0, page: 1, loading: false },
 		polling: null,
 		driving: false,
-		driveErrors: 0
+		driveErrors: 0,
+		notifications: [],
+		notifOpen: false,
+		notifUnread: 0
 	};
 
 	/* ============================================================
@@ -80,9 +83,9 @@
 	function pct( a, b ) { return b > 0 ? Math.round( ( a / b ) * 100 ) : 0; }
 	function isPro() { return State.settings.mode === 'pro'; }
 
-	var toastTimer;
 	function toast( msg, type ) {
 		type = type || 'info';
+		pushNotif( msg, type ); // Guarda en el historial (campana).
 		var wrap = document.querySelector( '.ff-toasts' );
 		if ( ! wrap ) {
 			wrap = document.createElement( 'div' );
@@ -95,11 +98,66 @@
 		t.innerHTML = '<span class="ff-toast__ico">' + ( icons[ type ] || 'ℹ' ) + '</span><span class="ff-toast__msg"></span>';
 		t.querySelector( '.ff-toast__msg' ).textContent = msg;
 		wrap.appendChild( t );
+		// Duración según longitud del mensaje (mín. 5 s, máx. 9 s) para dar
+		// tiempo a leer; además queda guardado en la campana.
+		var dur = Math.min( 9000, Math.max( 5000, String( msg ).length * 90 ) );
 		setTimeout( function () {
 			t.style.opacity = '0';
 			t.style.transform = 'translateY(-8px)';
 			setTimeout( function () { t.remove(); }, 300 );
-		}, 4000 );
+		}, dur );
+	}
+
+	/* ---- Centro de notificaciones (campana) ---- */
+	function pushNotif( msg, type ) {
+		State.notifications.unshift( { msg: String( msg ), type: type || 'info', time: Date.now() } );
+		if ( State.notifications.length > 40 ) { State.notifications.pop(); }
+		if ( ! State.notifOpen ) { State.notifUnread++; }
+		refreshBellBadge();
+	}
+
+	function refreshBellBadge() {
+		var b = document.querySelector( '.ff-bellbtn' );
+		if ( ! b ) { return; }
+		var badge = b.querySelector( '.ff-bellbtn__badge' );
+		if ( State.notifUnread > 0 ) {
+			if ( ! badge ) { badge = document.createElement( 'span' ); badge.className = 'ff-bellbtn__badge'; b.appendChild( badge ); }
+			badge.textContent = State.notifUnread > 9 ? '9+' : String( State.notifUnread );
+		} else if ( badge ) {
+			badge.remove();
+		}
+	}
+
+	function timeAgo( ts ) {
+		var s = Math.round( ( Date.now() - ts ) / 1000 );
+		if ( s < 60 ) { return 'hace ' + s + ' s'; }
+		var m = Math.round( s / 60 );
+		if ( m < 60 ) { return 'hace ' + m + ' min'; }
+		var hr = Math.round( m / 60 );
+		return 'hace ' + hr + ' h';
+	}
+
+	function renderNotifPanel() {
+		var panel = document.getElementById( 'ff-notifpanel' );
+		if ( ! panel ) { return; }
+		panel.classList.toggle( 'is-open', !! State.notifOpen );
+		if ( ! State.notifOpen ) { return; }
+		var icons = { success: '✓', error: '✕', info: 'ℹ' };
+		var list = State.notifications.length
+			? State.notifications.map( function ( n ) {
+				return '<div class="ff-notif ff-notif--' + n.type + '">' +
+					'<span class="ff-notif__ico">' + ( icons[ n.type ] || 'ℹ' ) + '</span>' +
+					'<div class="ff-notif__body"><span class="ff-notif__msg"></span>' +
+					'<span class="ff-notif__time">' + timeAgo( n.time ) + '</span></div></div>';
+			} ).join( '' )
+			: '<div class="ff-notif__empty">No hay notificaciones todavía.</div>';
+		panel.innerHTML =
+			'<div class="ff-notif__head"><b>Notificaciones</b>' +
+				( State.notifications.length ? '<button class="ff-btn ff-btn--sm ff-btn--ghost" data-action="notif-clear">Limpiar</button>' : '' ) +
+			'</div><div class="ff-notif__list">' + list + '</div>';
+		// Rellena los mensajes como texto (evita inyección de HTML).
+		var msgs = panel.querySelectorAll( '.ff-notif__msg' );
+		State.notifications.forEach( function ( n, i ) { if ( msgs[ i ] ) { msgs[ i ].textContent = n.msg; } } );
 	}
 
 	/* ============================================================
@@ -165,10 +223,17 @@
 					'</div>' +
 				'</aside>' +
 				'<main class="ff-main" id="ff-view"></main>' +
-				'<button class="ff-themebtn" data-action="theme" title="Cambiar tema">' + ( State.theme === 'dark' ? '☀' : '🌙' ) + '</button>' +
+				'<div class="ff-topright">' +
+					'<button class="ff-bellbtn" data-action="notif-toggle" title="Notificaciones">🔔' +
+						( State.notifUnread > 0 ? '<span class="ff-bellbtn__badge">' + ( State.notifUnread > 9 ? '9+' : State.notifUnread ) + '</span>' : '' ) +
+					'</button>' +
+					'<button class="ff-themebtn" data-action="theme" title="Cambiar tema">' + ( State.theme === 'dark' ? '☀' : '🌙' ) + '</button>' +
+				'</div>' +
+				'<div class="ff-notifpanel" id="ff-notifpanel"></div>' +
 			'</div>';
 
 		renderRoute();
+		renderNotifPanel();
 	}
 
 	function renderRoute() {
@@ -376,17 +441,21 @@
 					'<button data-view="grid" class="' + ( 'grid' === State.media.view ? 'is-active' : '' ) + '">▦ Cuadrícula</button>' +
 				'</div>' +
 			'</div>' +
-			'<div class="ff-toolbar" style="justify-content:space-between;gap:10px;flex-wrap:wrap">' +
-				'<input type="search" class="ff-input" id="ff-search" placeholder="🔍 Buscar por nombre…" value="' + h( State.media.search ) + '" style="max-width:280px">' +
-				'<div class="ff-row" style="gap:10px;flex-wrap:wrap">' +
-					'<select class="ff-select" id="ff-datefilter" style="max-width:210px" title="Mostrar solo imágenes subidas recientemente">' +
-						dateOpt( '', '📅 Cualquier fecha' ) + dateOpt( '24h', 'Subidas hoy (24 h)' ) +
-						dateOpt( '7d', 'Últimos 7 días' ) + dateOpt( '30d', 'Últimos 30 días' ) +
-					'</select>' +
-					'<select class="ff-select" id="ff-orderby" style="max-width:210px">' +
-						sortOpt( 'recent', 'Últimas añadidas' ) + sortOpt( 'oldest', 'Más antiguas' ) +
-						sortOpt( 'savings', 'Mayor ahorro' ) + sortOpt( 'title', 'Nombre (A-Z)' ) + sortOpt( 'type', 'Tipo de archivo' ) +
-					'</select>' +
+			'<div class="ff-filterbar">' +
+				'<input type="search" class="ff-input ff-filterbar__search" id="ff-search" placeholder="🔍 Buscar por nombre…" value="' + h( State.media.search ) + '">' +
+				'<div class="ff-filterbar__group">' +
+					'<label class="ff-filterbar__field"><span>Mostrar</span>' +
+						'<select class="ff-select" id="ff-datefilter" title="Mostrar solo imágenes subidas recientemente">' +
+							dateOpt( '', 'Todas las fechas' ) + dateOpt( '24h', 'Subidas hoy (24 h)' ) +
+							dateOpt( '7d', 'Últimos 7 días' ) + dateOpt( '30d', 'Últimos 30 días' ) +
+						'</select>' +
+					'</label>' +
+					'<label class="ff-filterbar__field"><span>Ordenar</span>' +
+						'<select class="ff-select" id="ff-orderby">' +
+							sortOpt( 'recent', 'Últimas añadidas' ) + sortOpt( 'oldest', 'Más antiguas' ) +
+							sortOpt( 'savings', 'Mayor ahorro' ) + sortOpt( 'title', 'Nombre (A-Z)' ) + sortOpt( 'type', 'Tipo de archivo' ) +
+						'</select>' +
+					'</label>' +
 				'</div>' +
 			'</div>' +
 			'<div class="ff-card"><div id="ff-media-table"></div></div>';
@@ -494,7 +563,7 @@
 		var n = State.media.selected.length;
 		var aiOn = State.settings.ai && State.settings.ai.enabled;
 		var left = '<label class="ff-selall"><input type="checkbox" class="ff-check" data-action="select-all"' + ( allPageSelected() ? ' checked' : '' ) + '> Seleccionar todo' + ( n ? ' · ' + n + ' elegida(s)' : '' ) + '</label>' +
-			'<span class="ff-muted" style="font-size:12px">Toca una tarjeta para seleccionarla · usa <b>Detalles</b> para ver la ficha</span>';
+			'<span class="ff-muted" style="font-size:12px">Toca la <b>miniatura</b> para seleccionar · toca los <b>datos</b> para ver la ficha</span>';
 		var right = '';
 		if ( n ) {
 			right = '<button class="ff-btn ff-btn--sm ff-btn--primary" data-action="sel-optimize">⚡ Optimizar</button>';
@@ -705,9 +774,14 @@
 		// Toda la tarjeta es seleccionable (data-action="card-select"). Los botones
 		// internos tienen su propia acción, así que no interfieren. Para abrir la
 		// ficha se usa el botón "Detalles".
-		return '<div class="ff-mcard ff-mcard--pick' + ( isSelected( it.id ) ? ' is-selected' : '' ) + '" data-action="card-select" data-id="' + it.id + '">' +
-			'<div class="ff-mcard__thumb"><span class="ff-mcard__check">' + selCheck( it ) + '</span>' +
-				'<img src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></div>' +
+		// Miniatura = seleccionar (check); área de datos = abrir ficha detallada.
+		// Los botones internos y el checkbox tienen su propia acción y mandan.
+		return '<div class="ff-mcard ff-mcard--pick' + ( isSelected( it.id ) ? ' is-selected' : '' ) + '" data-action="card-detail" data-id="' + it.id + '">' +
+			'<div class="ff-mcard__thumb" data-action="card-select" data-id="' + it.id + '" title="Clic para seleccionar">' +
+				'<span class="ff-mcard__check">' + selCheck( it ) + '</span>' +
+				'<img src="' + ( it.thumb || '' ) + '" alt="" loading="lazy">' +
+				'<span class="ff-mcard__pickhint">✓ Seleccionar</span>' +
+			'</div>' +
 			'<div class="ff-mcard__body">' +
 				'<div class="ff-row" style="gap:6px;flex-wrap:wrap">' +
 					'<span class="ff-badge ff-badge--' + it.status + '">' + h( it.status ) + '</span>' + aiBadge( it ) +
@@ -744,9 +818,9 @@
 		// Vista en lista (tabla).
 		var rows = State.media.items.map( function ( it ) {
 			var badge = '<span class="ff-badge ff-badge--' + it.status + '">' + h( it.status ) + '</span>';
-			return '<tr data-action="card-select" data-id="' + it.id + '" class="ff-row-pick' + ( isSelected( it.id ) ? ' is-selected' : '' ) + '">' +
+			return '<tr data-action="card-detail" data-id="' + it.id + '" class="ff-row-pick' + ( isSelected( it.id ) ? ' is-selected' : '' ) + '">' +
 				'<td>' + selCheck( it ) + '</td>' +
-				'<td><img class="ff-thumb" src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></td>' +
+				'<td><img class="ff-thumb" data-action="card-select" data-id="' + it.id + '" title="Clic para seleccionar" src="' + ( it.thumb || '' ) + '" alt="" loading="lazy"></td>' +
 				'<td><b>#' + it.id + '</b><br><span class="ff-muted">' + h( it.mime ) + '</span></td>' +
 				'<td>' + badge + ( it.format_to ? '<br><span class="ff-muted" style="font-size:11px">' + h( it.format_to ) + '</span>' : '' ) + '</td>' +
 				'<td>' + ( it.saved_bytes ? '<b style="color:var(--ff-accent)">' + bytes( it.saved_bytes ) + '</b>' : '<span class="ff-muted">—</span>' ) + '</td>' +
@@ -1242,8 +1316,14 @@
 		if ( nav ) { State.route = nav.getAttribute( 'data-route' ); renderShell(); return; }
 
 		var actionEl = e.target.closest( '[data-action]' );
+		var _act = actionEl ? actionEl.getAttribute( 'data-action' ) : '';
+		// Cierra el panel de notificaciones al hacer clic fuera de él.
+		if ( State.notifOpen && ! e.target.closest( '#ff-notifpanel' ) && 'notif-toggle' !== _act ) {
+			State.notifOpen = false;
+			renderNotifPanel();
+		}
 		if ( ! actionEl ) { return; }
-		var action = actionEl.getAttribute( 'data-action' );
+		var action = _act;
 
 		switch ( action ) {
 			case 'mode':
@@ -1258,6 +1338,17 @@
 				State.theme = State.theme === 'dark' ? 'light' : 'dark';
 				localStorage.setItem( 'fasterfy_theme', State.theme );
 				renderShell();
+				break;
+			case 'notif-toggle':
+				State.notifOpen = ! State.notifOpen;
+				if ( State.notifOpen ) { State.notifUnread = 0; refreshBellBadge(); }
+				renderNotifPanel();
+				break;
+			case 'notif-clear':
+				State.notifications = [];
+				State.notifUnread = 0;
+				refreshBellBadge();
+				renderNotifPanel();
 				break;
 			case 'start-queue':
 				var mode = actionEl.getAttribute( 'data-mode' ) || 'optimize';
@@ -1313,6 +1404,9 @@
 				if ( pickIdx >= 0 ) { State.media.selected.splice( pickIdx, 1 ); }
 				else { State.media.selected.push( pickId ); }
 				renderMediaTable();
+				break;
+			case 'card-detail':
+				openDetail( +actionEl.getAttribute( 'data-id' ) );
 				break;
 			case 'select':
 				var cb = e.target.closest( '[data-action="select"]' );

@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.26
+Stable tag: 1.0.27
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,12 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.27 =
+* Biblioteca: barra de filtros reorganizada (búsqueda + "Mostrar" por fecha + "Ordenar"), con selects que ahora sí encajan con el diseño oscuro.
+* Cuadrícula: pasa de ~7 a 5 columnas en pantallas amplias (se adapta hacia abajo), para que no se vea apretado.
+* Selección más intuitiva: tocar la MINIATURA marca/desmarca la imagen; tocar el ÁREA DE DATOS abre la ficha detallada.
+* Nuevo centro de notificaciones: una campana junto al botón de tema guarda los avisos para poder leerlos con calma (con contador de no leídos). Los avisos ahora duran más en pantalla según su longitud.
 
 = 1.0.26 =
 * Biblioteca: nuevo filtro por fecha de subida (Cualquier fecha / Hoy / 7 días / 30 días) para aislar las imágenes recién añadidas y no mezclarlas con las antiguas. El orden "Más recientes" pasa a llamarse "Últimas añadidas".

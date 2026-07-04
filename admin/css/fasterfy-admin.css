@@ -268,7 +268,11 @@ html.wp-toolbar { background: #141414; }
 
 
 /* ----- Vista en cuadrícula de la biblioteca ----- */
-.ff-mediagrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+/* 5 columnas en pantallas amplias; se adapta hacia abajo para que no se vea apretado. */
+.ff-mediagrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+@media ( max-width: 1200px ) { .ff-mediagrid { grid-template-columns: repeat(4, 1fr); } }
+@media ( max-width: 960px ) { .ff-mediagrid { grid-template-columns: repeat(3, 1fr); } }
+@media ( max-width: 680px ) { .ff-mediagrid { grid-template-columns: repeat(2, 1fr); } }
 .ff-mcard { display: flex; flex-direction: column; background: var(--ff-surface); border: 1px solid var(--ff-border); border-radius: var(--ff-radius-sm); overflow: hidden; transition: transform .15s ease, box-shadow .15s ease; }
 .ff-mcard:hover { transform: translateY(-2px); box-shadow: var(--ff-shadow); }
 .ff-mcard__thumb { aspect-ratio: 1 / 1; background: var(--ff-surface-2); overflow: hidden; }
@@ -557,14 +561,78 @@ html.wp-toolbar { background: #141414; }
 
 
 /* ============================================================
- * v1.0.26 — Selección por tarjeta/fila completa
+ * v1.0.26 — Selección: miniatura selecciona, datos abren la ficha
  * ============================================================ */
-.ff-mcard--pick { cursor: pointer; }
+.ff-mcard--pick { user-select: none; }
+.ff-mcard--pick .ff-mcard__body { cursor: pointer; } /* datos -> ficha */
+.ff-mcard--pick .ff-mcard__thumb { cursor: pointer; position: relative; } /* miniatura -> seleccionar */
 .ff-mcard--pick:hover { border-color: var(--ff-primary); box-shadow: 0 0 0 2px rgba( 51, 238, 51, 0.18 ); }
 .ff-mcard--pick.is-selected { border-color: var(--ff-primary); box-shadow: 0 0 0 2px var(--ff-primary); }
-.ff-row-pick { cursor: pointer; }
+.ff-row-pick { user-select: none; cursor: pointer; } /* fila (datos) -> ficha */
 .ff-row-pick:hover { background: var(--ff-surface); }
-/* Evita que el texto se seleccione al hacer clics rápidos para marcar. */
-.ff-mcard--pick, .ff-row-pick { user-select: none; }
-/* La miniatura ya no abre el detalle al clic; se usa el botón "Detalles". */
-.ff-mcard__thumb img, .ff-thumb { cursor: pointer; }
+.ff-row-pick .ff-thumb { cursor: pointer; } /* miniatura -> seleccionar */
+
+/* Etiqueta flotante "Seleccionar" al pasar el ratón por la miniatura. */
+.ff-mcard__pickhint {
+	position: absolute; left: 8px; bottom: 8px; z-index: 2;
+	background: rgba( 20, 20, 20, 0.82 ); color: #fff; font-size: 11px; font-weight: 700;
+	padding: 4px 8px; border-radius: 8px; opacity: 0; transform: translateY( 4px );
+	transition: opacity .15s ease, transform .15s ease; pointer-events: none;
+}
+.ff-mcard--pick .ff-mcard__thumb:hover .ff-mcard__pickhint { opacity: 1; transform: translateY( 0 ); }
+.ff-mcard--pick.is-selected .ff-mcard__pickhint { opacity: 1; background: var(--ff-primary); color: #10210f; }
+
+
+
+/* ============================================================
+ * v1.0.27 — Barra de filtros, centro de notificaciones (campana)
+ * ============================================================ */
+
+/* Barra de filtros de la biblioteca (search + selects), ordenada y coherente. */
+.ff-filterbar {
+	display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.ff-filterbar__search { flex: 1 1 240px; max-width: 380px; }
+.ff-filterbar__group { display: flex; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+.ff-filterbar__field { display: flex; flex-direction: column; gap: 5px; }
+.ff-filterbar__field > span { font-size: 11px; font-weight: 700; color: var(--ff-text-dim); text-transform: uppercase; letter-spacing: .04em; padding-left: 2px; }
+.ff-filterbar__field .ff-select { min-width: 180px; }
+
+/* Cluster superior derecho: campana + tema. */
+.ff-topright { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 90; }
+.ff-bellbtn, .ff-topright .ff-themebtn { position: static; }
+.ff-bellbtn {
+	width: 40px; height: 40px; border-radius: 12px; cursor: pointer; font-size: 18px;
+	background: var(--ff-surface-2); border: 1px solid var(--ff-border); color: var(--ff-text);
+	display: inline-flex; align-items: center; justify-content: center; position: relative;
+	transition: background .15s ease;
+}
+.ff-bellbtn:hover { background: var(--ff-primary); }
+.ff-bellbtn__badge {
+	position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
+	border-radius: 9px; background: var(--ff-danger); color: #fff; font-size: 11px; font-weight: 800;
+	display: flex; align-items: center; justify-content: center; border: 2px solid var(--ff-bg);
+}
+
+/* Panel de notificaciones desplegable. */
+.ff-notifpanel {
+	position: fixed; top: 64px; right: 16px; width: 360px; max-width: calc( 100vw - 32px );
+	max-height: 70vh; overflow: hidden; z-index: 95;
+	background: var(--ff-bg-soft); border: 1px solid var(--ff-border); border-radius: 14px;
+	box-shadow: 0 20px 60px rgba( 0, 0, 0, 0.45 );
+	opacity: 0; transform: translateY( -8px ) scale( .98 ); pointer-events: none;
+	transition: opacity .18s ease, transform .18s ease;
+}
+.ff-notifpanel.is-open { opacity: 1; transform: translateY( 0 ) scale( 1 ); pointer-events: auto; }
+.ff-notif__head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--ff-border); }
+.ff-notif__list { max-height: calc( 70vh - 54px ); overflow-y: auto; padding: 8px; }
+.ff-notif { display: flex; gap: 10px; padding: 11px 12px; border-radius: 10px; }
+.ff-notif:hover { background: var(--ff-surface); }
+.ff-notif__ico { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; flex: none; }
+.ff-notif--success .ff-notif__ico { background: #18c93a; }
+.ff-notif--error .ff-notif__ico { background: var(--ff-danger); }
+.ff-notif--info .ff-notif__ico { background: #3b82f6; }
+.ff-notif__body { display: flex; flex-direction: column; gap: 3px; }
+.ff-notif__msg { font-size: 13px; line-height: 1.4; color: var(--ff-text); }
+.ff-notif__time { font-size: 11px; color: var(--ff-text-dim); }
+.ff-notif__empty { padding: 28px 16px; text-align: center; color: var(--ff-text-dim); font-size: 13px; }
