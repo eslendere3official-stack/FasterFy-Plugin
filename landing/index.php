@@ -18,7 +18,7 @@ $csrf = csrf_token();
 // Stamp the moment the form was served (used by the time-trap on submit).
 $_SESSION[ FORM_RENDERED_KEY ] = time();
 
-$asset_v = '1.2.0'; // Bump to bust cache on deploy.
+$asset_v = '1.3.0'; // Bump to bust cache on deploy.
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -72,6 +72,7 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 	</script>
 </head>
 <body>
+	<div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
 	<a class="skip-link" href="#waitlist" data-i18n="skip">Skip to the waitlist</a>
 
 	<!-- ============================ HEADER ============================ -->
@@ -230,15 +231,25 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 			</div>
 		</section>
 
-		<!-- ===================== TRUST / CONTEXT STRIP ===================== -->
-		<section class="strip" aria-label="Highlights">
-			<div class="container strip__inner">
-				<span data-i18n="strip.1">WebP &amp; AVIF</span>
-				<span data-i18n="strip.2">AI Alt Text &amp; SEO</span>
-				<span data-i18n="strip.3">Bulk gallery processing</span>
-				<span data-i18n="strip.4">Smart compression</span>
-				<span data-i18n="strip.5">Auto semantic rename</span>
-				<span data-i18n="strip.6">SVG sanitization</span>
+		<!-- ===================== TRUST / CONTEXT STRIP (marquee) ===================== -->
+		<section class="strip marquee" aria-label="Highlights">
+			<div class="marquee__track">
+				<div class="strip__inner marquee__group">
+					<span data-i18n="strip.1">WebP &amp; AVIF</span>
+					<span data-i18n="strip.2">AI Alt Text &amp; SEO</span>
+					<span data-i18n="strip.3">Bulk gallery processing</span>
+					<span data-i18n="strip.4">Smart compression</span>
+					<span data-i18n="strip.5">Auto semantic rename</span>
+					<span data-i18n="strip.6">SVG sanitization</span>
+				</div>
+				<div class="strip__inner marquee__group" aria-hidden="true">
+					<span data-i18n="strip.1">WebP &amp; AVIF</span>
+					<span data-i18n="strip.2">AI Alt Text &amp; SEO</span>
+					<span data-i18n="strip.3">Bulk gallery processing</span>
+					<span data-i18n="strip.4">Smart compression</span>
+					<span data-i18n="strip.5">Auto semantic rename</span>
+					<span data-i18n="strip.6">SVG sanitization</span>
+				</div>
 			</div>
 		</section>
 

@@ -963,3 +963,124 @@ h1#hero-title .hl { color: var(--brand); }
 	.float-card { display: block; }
 	.footer__inner { grid-template-columns: 1fr auto; align-items: center; }
 }
+
+
+/* =====================================================================
+   UI Enhancements v1.3 — full-bleed · big type · motion
+   Additive layer (overrides base). Respects prefers-reduced-motion.
+   ===================================================================== */
+
+/* Wider canvas for a more full-width, modern feel */
+:root { --maxw: 1440px; }
+
+/* ---- Animated aurora background (subtle, behind everything) ---- */
+body::before {
+	content: "";
+	position: fixed;
+	inset: -25% -15% auto -15%;
+	height: 90vh;
+	z-index: -1;
+	pointer-events: none;
+	background:
+		radial-gradient(60% 60% at 18% 20%, rgba(51, 238, 51, .18), transparent 60%),
+		radial-gradient(50% 50% at 82% 8%,  rgba(51, 238, 51, .10), transparent 60%),
+		radial-gradient(45% 45% at 60% 85%, rgba(34, 201, 42, .12), transparent 60%);
+	filter: blur(32px);
+	animation: ff-aurora 20s ease-in-out infinite alternate;
+}
+@keyframes ff-aurora {
+	0%   { transform: translate3d(0, 0, 0) scale(1); }
+	50%  { transform: translate3d(2.5%, 2%, 0) scale(1.09); }
+	100% { transform: translate3d(-2.5%, -1.5%, 0) scale(1.05); }
+}
+
+/* ---- Scroll progress bar ---- */
+.scroll-progress {
+	position: fixed;
+	top: 0; left: 0;
+	height: 3px;
+	width: 0;
+	background: linear-gradient(90deg, var(--brand-700), var(--brand));
+	box-shadow: 0 0 12px var(--brand-glow);
+	z-index: 400;
+	transition: width .08s linear;
+}
+
+/* ---- Bigger, tighter display type (current trend) ---- */
+h1#hero-title { font-size: clamp(3rem, 8.5vw, 6.2rem); letter-spacing: -.045em; }
+.hero__lead { font-size: clamp(1.18rem, 2.6vw, 1.6rem); max-width: 740px; }
+.section__head h2 { font-size: clamp(2.4rem, 6vw, 4.1rem); letter-spacing: -.035em; }
+.section__sub { font-size: clamp(1.05rem, 2.2vw, 1.28rem); }
+
+/* ---- Section background variety ---- */
+.section--gradient {
+	background:
+		radial-gradient(120% 90% at 50% -10%, rgba(51, 238, 51, .07), transparent 55%),
+		linear-gradient(180deg, var(--ink-900), var(--ink));
+}
+
+/* ---- Button shine micro-interaction ---- */
+.btn--primary { position: relative; overflow: hidden; isolation: isolate; }
+.btn--primary::after {
+	content: "";
+	position: absolute;
+	top: 0; left: -130%;
+	width: 55%; height: 100%;
+	background: linear-gradient(120deg, transparent, rgba(255, 255, 255, .38), transparent);
+	transform: skewX(-20deg);
+	z-index: -1;
+}
+.btn--primary:hover::after { animation: ff-shine .85s var(--ease); }
+@keyframes ff-shine { to { left: 140%; } }
+
+/* ---- Card / step hover glow ---- */
+.card:hover { box-shadow: 0 34px 70px -34px var(--brand-glow); }
+.step:hover { border-color: rgba(51, 238, 51, .4); box-shadow: 0 34px 70px -40px var(--brand-glow); }
+
+/* ---- Horizontal marquee (auto-scroll strip) ---- */
+.marquee {
+	overflow: hidden;
+	-webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+	mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.marquee__track {
+	display: flex;
+	width: max-content;
+	animation: ff-marquee 34s linear infinite;
+}
+.marquee:hover .marquee__track { animation-play-state: paused; }
+.marquee .strip__inner {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 0 44px;
+	padding: 24px 22px;
+	justify-content: flex-start;
+}
+@keyframes ff-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ---- Horizontal scroll-snap row (touch / trackpad) ---- */
+.hscroll {
+	display: flex;
+	gap: 20px;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	padding: 8px 4px 22px;
+	scrollbar-width: none;
+	-webkit-overflow-scrolling: touch;
+}
+.hscroll::-webkit-scrollbar { display: none; }
+.hscroll > * { scroll-snap-align: center; flex: 0 0 clamp(260px, 82%, 360px); }
+
+/* ---- Directional scroll reveals (JS adds *-init then is-visible) ---- */
+.reveal-left-init  { opacity: 0; transform: translateX(-46px); transition: opacity .8s var(--ease), transform .8s var(--ease); will-change: opacity, transform; }
+.reveal-right-init { opacity: 0; transform: translateX(46px);  transition: opacity .8s var(--ease), transform .8s var(--ease); will-change: opacity, transform; }
+.reveal-left-init.is-visible,
+.reveal-right-init.is-visible { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+	body::before { animation: none; }
+	.marquee__track { animation: none; }
+	.btn--primary:hover::after { animation: none; }
+	.scroll-progress { transition: none; }
+	.reveal-left-init, .reveal-right-init { opacity: 1 !important; transform: none !important; transition: none; }
+}

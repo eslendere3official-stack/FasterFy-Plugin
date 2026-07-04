@@ -352,7 +352,7 @@
 		if (REDUCE) { return; }
 
 		// Soft reveal-up for headers and the final CTA.
-		var reveals = document.querySelectorAll('.section__head, .cta-final__inner, .strip__inner');
+		var reveals = document.querySelectorAll('.section__head, .cta-final__inner');
 		reveals.forEach(function (el) { el.classList.add('reveal-init'); });
 		observe(reveals, function (el) { el.classList.add('is-visible'); });
 
@@ -391,6 +391,24 @@
 		Object.keys(map).forEach(function (id) {
 			io.observe(document.getElementById(id));
 		});
+	}
+
+	/* --------------------- Scroll progress bar ------------------- */
+	function initProgress() {
+		var bar = document.getElementById('scroll-progress');
+		if (!bar) { return; }
+		var ticking = false;
+		function update() {
+			var doc = document.documentElement;
+			var max = doc.scrollHeight - doc.clientHeight;
+			var pct = max > 0 ? (doc.scrollTop / max) * 100 : 0;
+			bar.style.width = pct + '%';
+			ticking = false;
+		}
+		window.addEventListener('scroll', function () {
+			if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
+		}, { passive: true });
+		update();
 	}
 
 	/* ----------------------- Header on scroll -------------------- */
@@ -548,6 +566,7 @@
 		initScrollSpy();
 		initHeader();
 		initCounters();
+		initProgress();
 		initForm();
 	}
 
