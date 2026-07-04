@@ -85,7 +85,6 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 			<nav class="nav" aria-label="Primary">
 				<a href="#features" data-i18n="nav.features">Features</a>
 				<a href="#how" data-i18n="nav.how">How it works</a>
-				<a href="#pricing" data-i18n="nav.pricing">Pricing</a>
 				<a href="#faq" data-i18n="nav.faq">FAQ</a>
 			</nav>
 
@@ -101,22 +100,23 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 
 	<main id="main">
 		<!-- ============================ HERO ============================ -->
-		<section class="hero" aria-labelledby="hero-title">
+		<section class="hero" id="waitlist" aria-labelledby="hero-title">
 			<div class="container">
 				<div class="hero__copy">
 					<p class="eyebrow eyebrow--center">
 						<span class="dot" aria-hidden="true"></span>
-						<span data-i18n="hero.badge">Pre-launch · Early access</span>
+						<span data-i18n="hero.badge">Pre-launch · Founding access</span>
 					</p>
 
 					<h1 id="hero-title" data-i18n="hero.title">
-						Stop optimizing WordPress images by hand.
+						Your WordPress images are quietly killing your speed and your SEO.
 					</h1>
 
 					<p class="hero__lead" data-i18n="hero.lead">
-						FasterFy converts, compresses and writes SEO alt text for your entire
-						media library automatically — so your site loads faster, ranks higher
-						and you get hours back every week.
+						Every heavy image slows your pages, buries you in Google and steals hours
+						of manual work. FasterFy converts, compresses and writes SEO alt text
+						across your whole library — automatically. Join the waitlist and be first
+						in line when we launch.
 					</p>
 
 					<!-- ===================== WAITLIST FORM ===================== -->
@@ -145,7 +145,7 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 									aria-describedby="email-error form-note">
 							</div>
 							<button type="submit" class="btn btn--primary" data-i18n="form.submit">
-								Get early access
+								Reserve my spot
 							</button>
 						</div>
 
@@ -159,12 +159,17 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 						</label>
 
 						<p class="form-note" id="form-note" data-i18n="form.note">
-							Join the waitlist and lock in a founding-member discount.
+							Founding members lock in our lowest price, forever — before we open to everyone.
 						</p>
 
 						<!-- Success / error live region (populated by JS) -->
 						<div class="form-feedback" id="form-feedback" role="status" aria-live="polite" hidden></div>
 					</form>
+
+					<p class="hero__scarcity">
+						<span class="dot" aria-hidden="true"></span>
+						<span data-i18n="hero.scarcity">Founding access is limited — the earlier you join, the better your launch price.</span>
+					</p>
 
 					<ul class="hero__trust" aria-label="Why teams trust FasterFy">
 						<li data-i18n="hero.trust.1">No credit card</li>
@@ -337,83 +342,6 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 			</div>
 		</section>
 
-		<!-- ============================ PRICING ============================ -->
-		<section class="section" id="pricing" aria-labelledby="pricing-title">
-			<div class="container">
-				<header class="section__head">
-					<p class="eyebrow eyebrow--center" data-i18n="pricing.eyebrow">Pricing</p>
-					<h2 id="pricing-title" data-i18n="pricing.title">Simple plans that scale with you</h2>
-					<p class="section__sub" data-i18n="pricing.sub">
-						Founding-member pricing for everyone on the waitlist. Prices below are placeholders for pre-launch.
-					</p>
-
-					<div class="billing-toggle" role="group" aria-label="Billing period">
-						<button type="button" class="billing-btn is-active" data-billing="monthly" aria-pressed="true" data-i18n="pricing.monthly">Monthly</button>
-						<button type="button" class="billing-btn" data-billing="annual" aria-pressed="false" data-i18n="pricing.annual">Annual · save 20%</button>
-					</div>
-				</header>
-
-				<div class="plans">
-					<!-- Lite -->
-					<article class="plan">
-						<h3 class="plan__name" data-i18n="plan.lite.name">Lite</h3>
-						<p class="plan__desc" data-i18n="plan.lite.desc">For personal sites &amp; blogs getting started.</p>
-						<p class="plan__price">
-							<span class="plan__amount">$0</span>
-							<span class="plan__period" data-i18n="plan.free">free forever</span>
-						</p>
-						<a class="btn btn--ghost btn--block" href="#waitlist" data-i18n="plan.lite.cta">Start free</a>
-						<ul class="plan__features" role="list">
-							<li data-i18n="plan.lite.f1">WebP/AVIF conversion &amp; compression</li>
-							<li data-i18n="plan.lite.f2">SVG sanitization</li>
-							<li data-i18n="plan.lite.f3">One-click optimize</li>
-							<li data-i18n="plan.lite.f4">Non-destructive rollback</li>
-							<li data-i18n="plan.lite.f5">100 AI credits / month</li>
-						</ul>
-					</article>
-
-					<!-- Pro (highlighted) -->
-					<article class="plan plan--featured">
-						<span class="plan__badge" data-i18n="plan.popular">Most popular</span>
-						<h3 class="plan__name" data-i18n="plan.pro.name">Pro</h3>
-						<p class="plan__desc" data-i18n="plan.pro.desc">For professionals &amp; growing businesses.</p>
-						<p class="plan__price">
-							<span class="plan__amount" data-monthly="$19" data-annual="$15">$19</span>
-							<span class="plan__period" data-i18n="plan.permo">/ month</span>
-						</p>
-						<a class="btn btn--primary btn--block" href="#waitlist" data-i18n="plan.pro.cta">Join waitlist</a>
-						<ul class="plan__features" role="list">
-							<li data-i18n="plan.pro.f1">Everything in Lite</li>
-							<li data-i18n="plan.pro.f2">AI alt text, titles &amp; descriptions</li>
-							<li data-i18n="plan.pro.f3">Automatic semantic rename</li>
-							<li data-i18n="plan.pro.f4">Bulk gallery processing</li>
-							<li data-i18n="plan.pro.f5">NSFW moderation &amp; advanced controls</li>
-							<li data-i18n="plan.pro.f6">5,000 AI credits / month</li>
-						</ul>
-					</article>
-
-					<!-- Agency -->
-					<article class="plan">
-						<h3 class="plan__name" data-i18n="plan.agency.name">Agency</h3>
-						<p class="plan__desc" data-i18n="plan.agency.desc">For agencies managing many client sites.</p>
-						<p class="plan__price">
-							<span class="plan__amount" data-monthly="$59" data-annual="$47">$59</span>
-							<span class="plan__period" data-i18n="plan.permo">/ month</span>
-						</p>
-						<a class="btn btn--ghost btn--block" href="#waitlist" data-i18n="plan.agency.cta">Join waitlist</a>
-						<ul class="plan__features" role="list">
-							<li data-i18n="plan.agency.f1">Everything in Pro</li>
-							<li data-i18n="plan.agency.f2">Multi-site management</li>
-							<li data-i18n="plan.agency.f3">Priority processing &amp; support</li>
-							<li data-i18n="plan.agency.f4">Exclusion rules &amp; throttling</li>
-							<li data-i18n="plan.agency.f5">25,000 AI credits / month</li>
-						</ul>
-					</article>
-				</div>
-				<p class="pricing__foot" data-i18n="pricing.foot">Prices are placeholders and may change at launch. Waitlist members get founding-member rates.</p>
-			</div>
-		</section>
-
 		<!-- ============================ FAQ ============================ -->
 		<section class="section section--alt" id="faq" aria-labelledby="faq-title">
 			<div class="container container--narrow">
@@ -467,7 +395,7 @@ $asset_v = '1.2.0'; // Bump to bust cache on deploy.
 			</div>
 			<nav class="footer__links" aria-label="Footer">
 				<a href="#features" data-i18n="nav.features">Features</a>
-				<a href="#pricing" data-i18n="nav.pricing">Pricing</a>
+				<a href="#how" data-i18n="nav.how">How it works</a>
 				<a href="#faq" data-i18n="nav.faq">FAQ</a>
 				<a href="#waitlist" data-i18n="nav.cta">Join waitlist</a>
 			</nav>

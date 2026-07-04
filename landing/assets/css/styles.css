@@ -328,6 +328,31 @@ h1#hero-title .hl { color: var(--brand); }
 	font-weight: 800;
 }
 
+.hero__scarcity {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	max-width: 600px;
+	margin: 22px auto 0;
+	padding: 11px 20px;
+	border: 1px solid var(--line-2);
+	border-radius: var(--pill);
+	background: var(--brand-soft);
+	color: var(--text);
+	font-size: 14px;
+	font-weight: 600;
+	text-align: left;
+}
+.hero__scarcity .dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--brand);
+	flex: none;
+	box-shadow: 0 0 0 0 var(--brand-glow);
+	animation: pulse 2.4s infinite;
+}
+
 /* --------------------------- Waitlist form ------------------------ */
 .waitlist {
 	background: rgba(31, 31, 31, .7);
