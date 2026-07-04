@@ -263,7 +263,7 @@
 	 * Vista: Dashboard
 	 * ============================================================ */
 	function viewDashboard( view ) {
-		view.innerHTML = topbar( 'Resumen', 'Estado global de optimización de tu biblioteca de medios.',
+		view.innerHTML = topbar( 'Resumen', 'Centro de operación: estado actual de tu biblioteca y acciones rápidas.',
 			'<button class="ff-btn ff-btn--primary" data-action="start-queue" data-mode="' + ( State.settings.ai && State.settings.ai.enabled ? 'both' : 'optimize' ) + '">⚡ Optimizar todo</button>' ) +
 			dashboardBanner() +
 			'<div id="ff-dash-body"><div class="ff-empty"><span class="ff-spinner"></span> Cargando datos…</div></div>';
@@ -327,37 +327,38 @@
 		var q = State.queue || State.summary.queue;
 		var saved = lib.total_saved || 0;
 		var ratio = pct( lib.optimized, lib.total );
-		var circ = 2 * Math.PI * 54;
-		var dash = circ - ( circ * ratio / 100 );
+		var aiOn = State.settings.ai && State.settings.ai.enabled;
 
+		// Resumen = OPERACIÓN: cuántos activos hay, qué falta y el estado de la
+		// cola en vivo + acciones rápidas. (El impacto/beneficio vive en "Rendimiento".)
 		body.innerHTML =
 			'<div class="ff-grid ff-grid--stats ff-mt">' +
 				statCard( 'Activos totales', lib.total, 'En la biblioteca de medios', '🖼️' ) +
 				statCard( 'Optimizados', lib.optimized, ratio + '% del total', '✅' ) +
-				statCard( 'Pendientes', lib.pending, 'Listos para procesar', '⏳' ) +
-				statCard( 'Espacio ahorrado', bytes( saved ), 'Acumulado histórico', '💾' ) +
+				statCard( 'Sin optimizar', lib.pending, 'Listos para procesar', '⏳' ) +
+				( aiOn
+					? statCard( 'Sin texto SEO', ( null != lib.ai_pending ? lib.ai_pending : 0 ), 'Pendientes de texto', '🏷️' )
+					: statCard( 'Espacio ahorrado', bytes( saved ), 'Acumulado histórico', '💾' ) ) +
+			'</div>' +
+			'<div class="ff-card ff-card--pad-lg ff-mt-lg">' +
+				'<h3>Estado del procesamiento ' + queuePill( q.status ) + '</h3>' +
+				queuePanel( q ) +
 			'</div>' +
 			'<div class="ff-grid ff-grid--2 ff-mt-lg">' +
-				'<div class="ff-card ff-card--pad-lg">' +
-					'<h3>Estado del procesamiento ' + queuePill( q.status ) + '</h3>' +
-					queuePanel( q ) +
-				'</div>' +
-				'<div class="ff-card ff-card--pad-lg">' +
-					'<h3>Progreso global</h3>' +
-					'<div class="ff-ring">' +
-						'<svg width="130" height="130" viewBox="0 0 130 130">' +
-							'<defs><linearGradient id="ffgrad" x1="0" y1="0" x2="1" y2="1">' +
-								'<stop offset="0%" stop-color="#33ee33"/><stop offset="100%" stop-color="#18c93a"/>' +
-							'</linearGradient></defs>' +
-							'<circle class="ff-ring__track" cx="65" cy="65" r="54"/>' +
-							'<circle class="ff-ring__bar" cx="65" cy="65" r="54" stroke-dasharray="' + circ + '" stroke-dashoffset="' + dash + '"/>' +
-						'</svg>' +
-						'<div class="ff-ring__center"><div class="ff-ring__pct">' + ratio + '%</div><div class="ff-card__sub">optimizado</div></div>' +
-					'</div>' +
-					byTypeList( lib.by_type ) +
-				'</div>' +
-			'</div>' +
-			capabilitiesCard();
+				dashboardQuickActions( aiOn ) +
+				capabilitiesCard() +
+			'</div>';
+	}
+
+	/** Tarjeta de acciones rápidas del Resumen (centro de operación). */
+	function dashboardQuickActions( aiOn ) {
+		var b = '<button class="ff-btn ff-btn--primary" data-action="start-queue" data-mode="' + ( aiOn ? 'both' : 'optimize' ) + '">⚡ Optimizar' + ( aiOn ? ' + textos' : ' todo' ) + '</button>';
+		if ( aiOn ) { b += '<button class="ff-btn ff-btn--accent" data-action="start-queue" data-mode="ai">🧠 Generar textos</button>'; }
+		b += '<button class="ff-btn" data-route="media">🖼️ Ir a la biblioteca</button>';
+		b += '<button class="ff-btn ff-btn--danger" data-action="start-queue" data-mode="rollback">↩ Revertir todo</button>';
+		return '<div class="ff-card ff-card--pad-lg"><h3>Acciones rápidas</h3>' +
+			'<p class="ff-muted" style="margin:-6px 0 14px;font-size:13px">Lanza el procesamiento de toda la biblioteca. El progreso aparece arriba y continúa en segundo plano.</p>' +
+			'<div class="ff-row" style="gap:10px;flex-wrap:wrap">' + b + '</div></div>';
 	}
 
 	function statCard( label, value, sub, ico ) {
@@ -1028,6 +1029,13 @@
 					toggleField( 'advanced.prefer_action_scheduler', 'Preferir Action Scheduler', adv.prefer_action_scheduler, 'Si tienes WooCommerce o Action Scheduler instalado, usa ese motor de colas (más robusto para tareas en segundo plano).' ) +
 					toggleField( 'advanced.delete_data_on_uninstall', 'Borrar datos al desinstalar', adv.delete_data_on_uninstall, 'Si se activa, al eliminar el plugin se borran también sus ajustes y registros. Déjalo desactivado si podrías reinstalarlo.' ) +
 				'</div>' +
+				'<div class="ff-section-title" style="margin-top:22px">Copia de seguridad de la configuración</div>' +
+				'<div class="ff-backup">' +
+					'<button class="ff-btn" data-action="export-settings">⬇ Exportar configuración</button>' +
+					'<label class="ff-btn" for="ff-import" style="cursor:pointer">⬆ Importar configuración</label>' +
+					'<input type="file" id="ff-import" accept="application/json,.json" hidden>' +
+					'<span class="ff-muted" style="font-size:12px;align-self:center">Guarda tus ajustes en un archivo o restáuralos. Útil para replicar la misma configuración en otro sitio. La API Key no se incluye por seguridad.</span>' +
+				'</div>' +
 				'<div class="ff-row ff-mt-lg">' +
 					'<button class="ff-btn ff-btn--primary ff-btn--lg" data-action="save-settings">Guardar cambios</button>' +
 					( ! pro ? '<span class="ff-muted">Cambia a <b>Pro</b> para opciones avanzadas.</span>' : '' ) +
@@ -1146,6 +1154,65 @@
 			State.settings = res.settings;
 			toast( 'Ajustes guardados correctamente.', 'success' );
 		} ).catch( function ( e ) { toast( 'Error al guardar: ' + e.message, 'error' ); } );
+	}
+
+	/** Exporta la configuración actual (sin secretos) a un archivo JSON. */
+	function exportSettings() {
+		try {
+			var copy = JSON.parse( JSON.stringify( State.settings || {} ) );
+			if ( copy.ai ) { delete copy.ai.api_key; delete copy.ai.has_api_key; }
+			copy._fasterfy_export = { version: DATA.version || '', date: new Date().toISOString() };
+			var blob = new Blob( [ JSON.stringify( copy, null, 2 ) ], { type: 'application/json' } );
+			var url = URL.createObjectURL( blob );
+			var a = document.createElement( 'a' );
+			a.href = url;
+			a.download = 'fasterfy-config.json';
+			document.body.appendChild( a );
+			a.click();
+			a.remove();
+			URL.revokeObjectURL( url );
+			toast( 'Configuración exportada.', 'success' );
+		} catch ( e ) {
+			toast( 'No se pudo exportar: ' + e.message, 'error' );
+		}
+	}
+
+	/** Importa una configuración desde un archivo JSON y la aplica. */
+	function importSettings( file ) {
+		var reader = new FileReader();
+		reader.onload = function () {
+			var obj;
+			try {
+				obj = JSON.parse( String( reader.result ) );
+			} catch ( e ) {
+				toast( 'El archivo no es un JSON válido.', 'error' );
+				return;
+			}
+			if ( ! obj || 'object' !== typeof obj ) {
+				toast( 'El archivo no contiene una configuración válida.', 'error' );
+				return;
+			}
+			if ( ! window.confirm( '¿Importar esta configuración? Se sobrescribirán tus ajustes actuales. La API Key se conserva.' ) ) {
+				return;
+			}
+			delete obj._fasterfy_export;
+			if ( obj.ai ) { delete obj.ai.api_key; delete obj.ai.has_api_key; } // No tocar la clave.
+			Api.post( '/settings', { settings: obj } ).then( function ( res ) {
+				State.settings = res.settings;
+				toast( 'Configuración importada y aplicada.', 'success' );
+				renderRoute();
+			} ).catch( function ( e ) { toast( 'Error al importar: ' + e.message, 'error' ); } );
+		};
+		reader.readAsText( file );
+	}
+
+	/** Eventos "change" (input de archivo para importar configuración). */
+	function onChange( e ) {
+		if ( 'ff-import' === e.target.id ) {
+			var file = e.target.files && e.target.files[ 0 ];
+			if ( file ) { importSettings( file ); }
+			e.target.value = '';
+		}
 	}
 
 	/* ============================================================
@@ -1463,6 +1530,9 @@
 			case 'save-settings':
 				saveSettings();
 				break;
+			case 'export-settings':
+				exportSettings();
+				break;
 			case 'clear-logs':
 				Api.del( '/logs' ).then( function () { State.logs.page = 1; loadLogs(); toast( 'Registros limpiados.', 'success' ); } );
 				break;
@@ -1556,6 +1626,7 @@
 		if ( ! app ) { return; }
 		app.addEventListener( 'click', onClick );
 		app.addEventListener( 'input', onInput );
+		app.addEventListener( 'change', onChange );
 		document.addEventListener( 'keydown', onKeydown );
 		// Al volver a la pestaña, refresca el estado y reanuda el avance si la
 		// cola sigue en marcha (los navegadores "congelan" los timers en pestañas

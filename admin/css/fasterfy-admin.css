@@ -636,3 +636,14 @@ html.wp-toolbar { background: #141414; }
 .ff-notif__msg { font-size: 13px; line-height: 1.4; color: var(--ff-text); }
 .ff-notif__time { font-size: 11px; color: var(--ff-text-dim); }
 .ff-notif__empty { padding: 28px 16px; text-align: center; color: var(--ff-text-dim); font-size: 13px; }
+
+
+
+/* ============================================================
+ * v1.0.28 — Copia de seguridad de la configuración
+ * ============================================================ */
+.ff-backup {
+	display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+	padding: 16px; border: 1px dashed var(--ff-border); border-radius: 12px;
+	background: var(--ff-surface); margin-top: 6px;
+}

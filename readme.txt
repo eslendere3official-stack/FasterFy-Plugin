@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.27
+Stable tag: 1.0.28
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,10 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.28 =
+* Resumen vs. Rendimiento diferenciados: "Resumen" es ahora el centro de operación (estado de la biblioteca, cola en vivo y acciones rápidas), y "Rendimiento" se centra en el impacto (ahorro, velocidad, comparativas). Se elimina la duplicación de gráficos.
+* Ajustes: nueva copia de seguridad de la configuración — exporta tus ajustes a un archivo JSON o impórtalos (sin incluir la API Key). Útil para replicar la misma configuración en varios sitios.
 
 = 1.0.27 =
 * Biblioteca: barra de filtros reorganizada (búsqueda + "Mostrar" por fecha + "Ordenar"), con selects que ahora sí encajan con el diseño oscuro.
