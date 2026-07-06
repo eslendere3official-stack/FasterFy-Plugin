@@ -4,7 +4,7 @@ Tags: webp, avif, image optimization, compression, ai, alt text, seo, media, per
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.28
+Stable tag: 1.0.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,10 @@ Todas las rutas requieren capacidad `manage_options` y nonce `wp_rest`.
 * `POST /ai/item` — aplica IA a un adjunto (`{ id }`).
 
 == Changelog ==
+
+= 1.0.29 =
+* Seguridad/compatibilidad: la columna created_at de la tabla de registros usa ahora DEFAULT CURRENT_TIMESTAMP, evitando fallos de creación de la tabla en MySQL 8 / modo estricto (solo afecta a instalaciones nuevas; las existentes no cambian).
+* Documentación: se añade SECURITY.md con la auditoría de seguridad (22/23 buenas prácticas cubiertas) y la política de reporte de vulnerabilidades.
 
 = 1.0.28 =
 * Resumen vs. Rendimiento diferenciados: "Resumen" es ahora el centro de operación (estado de la biblioteca, cola en vivo y acciones rápidas), y "Rendimiento" se centra en el impacto (ahorro, velocidad, comparativas). Se elimina la duplicación de gráficos.

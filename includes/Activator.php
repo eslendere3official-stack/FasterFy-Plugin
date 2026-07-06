@@ -63,7 +63,7 @@ final class Activator {
 			context VARCHAR(60) NOT NULL DEFAULT 'general',
 			message TEXT NOT NULL,
 			meta LONGTEXT NULL,
-			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
 			KEY attachment_id (attachment_id),
 			KEY level (level),
