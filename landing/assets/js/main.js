@@ -17,14 +17,15 @@
 			'nav.pricing': 'Pricing',
 			'nav.faq': 'FAQ',
 			'nav.cta': 'Join waitlist',
-			'hero.badge': 'Pre-launch · Early access',
-			'hero.title': 'Stop optimizing WordPress images by hand.',
-			'hero.lead': 'FasterFy converts, compresses and writes SEO alt text for your entire media library automatically — so your site loads faster, ranks higher and you get hours back every week.',
+			'hero.badge': 'Pre-launch · Founding access',
+			'hero.title': 'Your WordPress images are quietly killing your speed and your SEO.',
+			'hero.lead': 'Every heavy image slows your pages, buries you in Google and steals hours of manual work. FasterFy converts, compresses and writes SEO alt text across your whole library — automatically. Join the waitlist and be first in line when we launch.',
 			'form.email.label': 'Work email',
 			'form.email.placeholder': 'you@yourcompany.com',
-			'form.submit': 'Get early access',
+			'form.submit': 'Reserve my spot',
 			'form.consent': 'I agree to receive launch updates. No spam — unsubscribe anytime.',
-			'form.note': 'Join the waitlist and lock in a founding-member discount.',
+			'form.note': 'Founding members lock in our lowest price, forever — before we open to everyone.',
+			'hero.scarcity': 'Founding access is limited — the earlier you join, the better your launch price.',
 			'hero.trust.1': 'No credit card',
 			'hero.trust.2': 'Non-destructive · 1-click rollback',
 			'hero.trust.3': 'Built for WordPress',
@@ -136,14 +137,15 @@
 			'nav.pricing': 'Precios',
 			'nav.faq': 'Preguntas',
 			'nav.cta': 'Unirme a la lista',
-			'hero.badge': 'Prelanzamiento · Acceso anticipado',
-			'hero.title': 'Deja de optimizar las imágenes de WordPress a mano.',
-			'hero.lead': 'FasterFy convierte, comprime y redacta el alt text SEO de toda tu biblioteca de medios automáticamente — para que tu sitio cargue más rápido, posicione mejor y recuperes horas cada semana.',
+			'hero.badge': 'Prelanzamiento · Acceso fundador',
+			'hero.title': 'Tus imágenes de WordPress están frenando tu velocidad y tu SEO en silencio.',
+			'hero.lead': 'Cada imagen pesada ralentiza tus páginas, te hunde en Google y te roba horas de trabajo manual. FasterFy convierte, comprime y redacta el alt text SEO de toda tu biblioteca — automáticamente. Únete a la lista y sé de los primeros cuando lancemos.',
 			'form.email.label': 'Correo de trabajo',
 			'form.email.placeholder': 'tu@tuempresa.com',
-			'form.submit': 'Quiero acceso anticipado',
+			'form.submit': 'Reservar mi lugar',
 			'form.consent': 'Acepto recibir novedades del lanzamiento. Sin spam — cancela cuando quieras.',
-			'form.note': 'Únete a la lista y asegura un descuento de miembro fundador.',
+			'form.note': 'Los miembros fundadores conservan nuestro precio más bajo, para siempre — antes de abrir a todo el mundo.',
+			'hero.scarcity': 'El acceso fundador es limitado — cuanto antes te unas, mejor será tu precio de lanzamiento.',
 			'hero.trust.1': 'Sin tarjeta de crédito',
 			'hero.trust.2': 'No destructivo · reversión en 1 clic',
 			'hero.trust.3': 'Hecho para WordPress',
@@ -350,7 +352,7 @@
 		if (REDUCE) { return; }
 
 		// Soft reveal-up for headers and the final CTA.
-		var reveals = document.querySelectorAll('.section__head, .cta-final__inner, .strip__inner');
+		var reveals = document.querySelectorAll('.section__head, .cta-final__inner');
 		reveals.forEach(function (el) { el.classList.add('reveal-init'); });
 		observe(reveals, function (el) { el.classList.add('is-visible'); });
 
@@ -389,6 +391,24 @@
 		Object.keys(map).forEach(function (id) {
 			io.observe(document.getElementById(id));
 		});
+	}
+
+	/* --------------------- Scroll progress bar ------------------- */
+	function initProgress() {
+		var bar = document.getElementById('scroll-progress');
+		if (!bar) { return; }
+		var ticking = false;
+		function update() {
+			var doc = document.documentElement;
+			var max = doc.scrollHeight - doc.clientHeight;
+			var pct = max > 0 ? (doc.scrollTop / max) * 100 : 0;
+			bar.style.width = pct + '%';
+			ticking = false;
+		}
+		window.addEventListener('scroll', function () {
+			if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
+		}, { passive: true });
+		update();
 	}
 
 	/* ----------------------- Header on scroll -------------------- */
@@ -546,6 +566,7 @@
 		initScrollSpy();
 		initHeader();
 		initCounters();
+		initProgress();
 		initForm();
 	}
 
